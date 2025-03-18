@@ -116,6 +116,15 @@ class SoccerMatchCard extends HTMLElement {
   }
 
 render() {
+  if (!this._hass || !this.config) {
+    this.shadowRoot.innerHTML = `
+      <ha-card>
+        <div style="color:white; padding: 16px;">❌ No hass or config yet...</div>
+      </ha-card>
+    `;
+    return;
+  }
+
   const entityId = this.config.entity;
   const stateObj = this._hass.states[entityId];
   
@@ -129,6 +138,7 @@ render() {
     </ha-card>
   `;
 }
+
 
 
 
