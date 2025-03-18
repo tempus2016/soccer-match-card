@@ -331,3 +331,11 @@ class SoccerMatchCardEditor extends HTMLElement {
 }
 
 customElements.define('soccer-match-card-editor', SoccerMatchCardEditor);
+
+// Register the card so Home Assistant knows about it
+window.customCards = window.customCards || [];
+window.customCards.push({
+  type: 'soccer-match-card',
+  name: 'Soccer Match Card',
+  description: 'A custom card to display soccer match info.',
+});
