@@ -116,14 +116,20 @@ class SoccerMatchCard extends HTMLElement {
   }
 
 render() {
+  const entityId = this.config.entity;
+  const stateObj = this._hass.states[entityId];
+  
+  const league = stateObj?.attributes?.league || 'Unknown League';
+
   this.shadowRoot.innerHTML = `
     <ha-card>
       <div style="color:white; padding: 16px;">
-        ✅ League: Premiership
+        ✅ League: ${league}
       </div>
     </ha-card>
   `;
 }
+
 
 
   
