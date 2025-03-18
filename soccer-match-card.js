@@ -20,7 +20,6 @@ class SoccerMatchCard extends HTMLElement {
 
   set hass(hass) {
     this._hass = hass;
-
     if (!this.config) return;
 
     const entityId = this.config.entity;
@@ -90,7 +89,7 @@ class SoccerMatchCard extends HTMLElement {
       return this.teamLogos[teamName];
     }
 
-    const apiKey = '3'; // Use your API key here
+    const apiKey = '3';
     const url = `https://www.thesportsdb.com/api/v1/json/${apiKey}/searchteams.php?t=${encodeURIComponent(teamName)}`;
 
     try {
@@ -115,34 +114,61 @@ class SoccerMatchCard extends HTMLElement {
     }
   }
 
-render() {
-  if (!this._hass || !this.config) {
+  render() {
+    if (!this._hass || !this.config) {
+      this.shadowRoot.innerHTML = `
+        <ha-card>
+          <div style="color:white; padding: 16px;">❌ Waiting for hass/config...</div>
+        </ha-card>`;
+      return;
+    }
+
+    const entityId = this.config.entity;
+    const stateObj = this._hass.states[entityId];
+
+    if (!stateObj) {
+      this.shadowRoot.innerHTML = `
+        <ha-card>
+          <div style="color:white; padding: 16px;">❌ Entity not found: ${entityId}</div>
+        </ha-card>`;
+      return;
+    }
+
+    const attributes = stateObj.attributes;
+    const league = attributes.league || 'Unknown League';
+    const homeTeam = attributes.home_team || 'Home Team';
+    const awayTeam = attributes.away_team || 'Away Team';
+    const startTime = attributes.start_time || 'Unknown Start Time';
+    const location = attributes.location || 'Unknown Location';
+
+    const homeTeamLogo = this.teamLogos[homeTeam] || 'https://via.placeholder.com/100';
+    const awayTeamLogo = this.teamLogos[awayTeam] || 'https://via.placeholder.com/100';
+
     this.shadowRoot.innerHTML = `
       <ha-card>
-        <div style="color:white; padding: 16px;">❌ No hass or config yet...</div>
+        <div class="match-container">
+          <div class="header">${league}</div>
+          <div class="teams-row">
+            <div class="team">
+              <img src="${homeTeamLogo}" alt="${homeTeam} Logo" class="team-logo">
+              <div class="team-name">${homeTeam}</div>
+            </div>
+            <div class="vs-container">
+              <div class="vs">VS</div>
+              <div class="kickoff-time">${startTime}</div>
+            </div>
+            <div class="team">
+              <img src="${awayTeamLogo}" alt="${awayTeam} Logo" class="team-logo">
+              <div class="team-name">${awayTeam}</div>
+            </div>
+          </div>
+          <div class="location">${location}</div>
+        </div>
       </ha-card>
     `;
-    return;
+
+    this.setStyle();
   }
-
-  const entityId = this.config.entity;
-  const stateObj = this._hass.states[entityId];
-  
-  const league = stateObj?.attributes?.league || 'Unknown League';
-
-  this.shadowRoot.innerHTML = `
-    <ha-card>
-      <div style="color:white; padding: 16px;">
-        ✅ League: ${league}
-      </div>
-    </ha-card>
-  `;
-}
-
-
-
-
-  
 
   setStyle() {
     const style = document.createElement('style');
@@ -243,6 +269,7 @@ render() {
 
 customElements.define('soccer-match-card', SoccerMatchCard);
 
+// Optional: Basic editor if you're adding this to HACS with editable UI
 class SoccerMatchCardEditor extends HTMLElement {
   constructor() {
     super();
@@ -266,9 +293,7 @@ class SoccerMatchCardEditor extends HTMLElement {
 
     this.shadowRoot.innerHTML = `
       <style>
-        .form {
-          padding: 16px;
-        }
+        .form { padding: 16px; }
       </style>
       <div class="form">
         <ha-entity-picker
