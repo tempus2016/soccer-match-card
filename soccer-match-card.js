@@ -269,7 +269,7 @@ class SoccerMatchCard extends HTMLElement {
 
 customElements.define('soccer-match-card', SoccerMatchCard);
 
-// Optional: Basic editor if you're adding this to HACS with editable UI
+// UI Editor Component
 class SoccerMatchCardEditor extends HTMLElement {
   constructor() {
     super();
@@ -287,7 +287,7 @@ class SoccerMatchCardEditor extends HTMLElement {
   }
 
   render() {
-    if (!this._hass) return;
+    if (!this.shadowRoot || !this._hass) return;
 
     const entity = this._config?.entity || '';
 
@@ -298,17 +298,18 @@ class SoccerMatchCardEditor extends HTMLElement {
       <div class="form">
         <ha-entity-picker
           label="Select Sensor Entity"
-          .hass=${this._hass}
-          .value=${entity}
-          .configValue=${"entity"}
+          .hass="${this._hass}"
+          .value="${entity}"
+          .configValue="${"entity"}"
           include-domains="sensor"
         ></ha-entity-picker>
       </div>
     `;
 
-    this.shadowRoot
-      .querySelector('ha-entity-picker')
-      ?.addEventListener('value-changed', (e) => this._valueChanged(e));
+    const picker = this.shadowRoot.querySelector('ha-entity-picker');
+    if (picker) {
+      picker.addEventListener('value-changed', (e) => this._valueChanged(e));
+    }
   }
 
   _valueChanged(ev) {
@@ -332,7 +333,7 @@ class SoccerMatchCardEditor extends HTMLElement {
 
 customElements.define('soccer-match-card-editor', SoccerMatchCardEditor);
 
-// Register the card so Home Assistant knows about it
+// Register in window.customCards so HA knows about the UI editor
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: 'soccer-match-card',
