@@ -115,13 +115,16 @@ class SoccerMatchCard extends HTMLElement {
     }
   }
 
-  render() {
-    this.shadowRoot.innerHTML = `
-      <ha-card>
-        <div style="color: white; padding: 16px;">⚽️ Hello World! Render is working!</div>
-      </ha-card>
-    `;
-  }
+render() {
+  this.shadowRoot.innerHTML = `
+    <ha-card>
+      <div style="color:white; padding: 16px;">
+        ✅ League: Premiership
+      </div>
+    </ha-card>
+  `;
+}
+
   
 
   setStyle() {
