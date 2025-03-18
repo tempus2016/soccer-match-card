@@ -91,7 +91,7 @@ class SoccerMatchCard extends HTMLElement {
       return this.teamLogos[teamName];
     }
 
-    const apiKey = '1'; // Replace if you have your own
+    const apiKey = '3'; // Replace if you have your own
     const url = `https://www.thesportsdb.com/api/v1/json/${apiKey}/searchteams.php?t=${encodeURIComponent(teamName)}`;
 
     try {
