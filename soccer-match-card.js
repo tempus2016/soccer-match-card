@@ -1,83 +1,74 @@
 class SoccerMatchCard extends HTMLElement {
+
+  // Called when Lovelace sets up the card with its config
   setConfig(config) {
     if (!config.entity) {
       throw new Error("You need to define an entity");
     }
-    this.config = config;
+
+    this._config = config;
+
+    // Clear old content
+    this.innerHTML = '';
+
+    // Create a card element
+    const card = document.createElement('ha-card');
+    card.header = this._config.title || 'Soccer Match Card';
+
+    // Create content container
+    const content = document.createElement('div');
+    content.style.padding = '16px';
+    content.innerHTML = `
+      <p>Entity: ${this._config.entity}</p>
+      <p>More match info will go here...</p>
+    `;
+
+    card.appendChild(content);
+    this.appendChild(card);
+  }
+
+  // Return the config if needed
+  getCardSize() {
+    return 1;
+  }
+
+  // Called when Home Assistant state changes
+  set hass(hass) {
+    this._hass = hass;
+
+    if (!this._config || !this._hass) return;
+
+    const entityState = this._hass.states[this._config.entity];
+
+    if (!entityState) {
+      this.innerHTML = `<ha-card><div style="padding: 16px;">Entity not found: ${this._config.entity}</div></ha-card>`;
+      return;
+    }
+
+    // Example of showing entity state
     this.innerHTML = `
-      <ha-card header="Soccer Match Card">
-        <div style="padding: 16px;">Entity: ${this.config.entity}</div>
+      <ha-card header="${this._config.title || 'Soccer Match'}">
+        <div style="padding: 16px;">
+          <strong>Match Info:</strong>
+          <pre>${entityState.state}</pre>
+        </div>
       </ha-card>
     `;
   }
 
-  static getConfigElement() {
+  // This tells Lovelace where the config editor is
+  static async getConfigElement() {
+    await import('./soccer-match-card-editor.js');
     return document.createElement('soccer-match-card-editor');
   }
 
+  // Default config example when adding a new card
   static getStubConfig() {
-    return { entity: 'sensor.example_sensor' };
+    return {
+      entity: '',
+      title: 'Soccer Match'
+    };
   }
 }
 
 customElements.define('soccer-match-card', SoccerMatchCard);
-
-class SoccerMatchCardEditor extends HTMLElement {
-  constructor() {
-    super();
-    this.attachShadow({ mode: 'open' });
-  }
-
-  setConfig(config) {
-    this._config = config;
-    this.render();
-  }
-
-  set hass(hass) {
-    this._hass = hass;
-    this.render();
-  }
-
-  render() {
-    if (!this._hass) return;
-
-    const entity = this._config?.entity || '';
-    this.shadowRoot.innerHTML = `
-      <style>.form { padding: 16px; }</style>
-      <div class="form">
-        <ha-entity-picker
-          .hass=${this._hass}
-          .value=${entity}
-          .configValue=${"entity"}
-          include-domains="sensor"
-        ></ha-entity-picker>
-      </div>
-    `;
-
-    this.shadowRoot.querySelector('ha-entity-picker')
-      ?.addEventListener('value-changed', (e) => this._valueChanged(e));
-  }
-
-  _valueChanged(ev) {
-    const target = ev.target;
-    if (!target || !target.configValue) return;
-
-    this._config = {
-      ...this._config,
-      [target.configValue]: target.value,
-    };
-
-    this.dispatchEvent(new CustomEvent('config-changed', {
-      detail: { config: this._config },
-    }));
-  }
-}
-
-customElements.define('soccer-match-card-editor', SoccerMatchCardEditor);
-
-window.customCards = window.customCards || [];
-window.customCards.push({
-  type: 'soccer-match-card',
-  name: 'Soccer Match Card',
-  description: 'Displays soccer match info with UI editor.',
-});
