@@ -21,7 +21,6 @@ class SoccerMatchCard extends HTMLElement {
   set hass(hass) {
     this._hass = hass;
 
-    // ✅ Ensure config is available
     if (!this.config) return;
 
     const entityId = this.config.entity;
@@ -91,7 +90,7 @@ class SoccerMatchCard extends HTMLElement {
       return this.teamLogos[teamName];
     }
 
-    const apiKey = '3'; // Replace if you have your own
+    const apiKey = '3'; // Use your API key here
     const url = `https://www.thesportsdb.com/api/v1/json/${apiKey}/searchteams.php?t=${encodeURIComponent(teamName)}`;
 
     try {
@@ -117,58 +116,13 @@ class SoccerMatchCard extends HTMLElement {
   }
 
   render() {
-    if (!this._hass || !this.config) {
-      this.shadowRoot.innerHTML = `<ha-card><div class="card-content">Waiting for configuration...</div></ha-card>`;
-      return;
-    }
-
-    const entityId = this.config.entity;
-    if (!entityId) {
-      this.shadowRoot.innerHTML = `<ha-card><div class="card-content">No entity selected.</div></ha-card>`;
-      return;
-    }
-
-    const stateObj = this._hass.states[entityId];
-    if (!stateObj) {
-      this.shadowRoot.innerHTML = `<ha-card><div class="card-content">Entity not found: ${entityId}</div></ha-card>`;
-      return;
-    }
-
-    const attributes = stateObj.attributes;
-    const homeTeam = attributes.home_team || 'Home Team';
-    const awayTeam = attributes.away_team || 'Away Team';
-    const location = attributes.location || 'Unknown Location';
-    const league = attributes.league || 'Unknown League';
-    const startTime = attributes.start_time || 'Unknown Start Time';
-
-    const homeTeamLogo = this.teamLogos[homeTeam] || 'https://via.placeholder.com/100';
-    const awayTeamLogo = this.teamLogos[awayTeam] || 'https://via.placeholder.com/100';
-
     this.shadowRoot.innerHTML = `
       <ha-card>
-        <div class="match-container">
-          <div class="header">${league}</div>
-          <div class="teams-row">
-            <div class="team">
-              <img src="${homeTeamLogo}" alt="${homeTeam} Logo" class="team-logo">
-              <div class="team-name">${homeTeam}</div>
-            </div>
-            <div class="vs-container">
-              <div class="vs">VS</div>
-              <div class="kickoff-time">${startTime}</div>
-            </div>
-            <div class="team">
-              <img src="${awayTeamLogo}" alt="${awayTeam} Logo" class="team-logo">
-              <div class="team-name">${awayTeam}</div>
-            </div>
-          </div>
-          <div class="location">${location}</div>
-        </div>
+        <div style="color: white; padding: 16px;">⚽️ Hello World! Render is working!</div>
       </ha-card>
     `;
-
-    this.setStyle();
   }
+  
 
   setStyle() {
     const style = document.createElement('style');
