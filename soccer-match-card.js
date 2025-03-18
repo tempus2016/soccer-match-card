@@ -124,7 +124,7 @@ render() {
   this.shadowRoot.innerHTML = `
     <ha-card>
       <div style="color:white; padding: 16px;">
-        ✅ League: ${league} 'lol'
+        ✅ League: ${league}
       </div>
     </ha-card>
   `;
