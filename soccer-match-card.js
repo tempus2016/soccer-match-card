@@ -139,8 +139,35 @@ render() {
   const homeTeam = attributes.home_team || 'Home Team';
   const awayTeam = attributes.away_team || 'Away Team';
   const location = attributes.location || 'Unknown Location';
-  const kickoffDatetime = new Date(attributes.kickoff_datetime); // Date object from the kickoff_datetime
-  const matchDate = kickoffDatetime.toLocaleDateString(); // Extract the date
+  const kickoffDatetime = new Date(attributes.kickoff_datetime);
+  const now = new Date();
+  const startTime = new Date(attributes.start_time);
+  const endTime = new Date(attributes.end_time);
+
+  // Check if the match is "In Play"
+  const isInPlay = now >= startTime && now <= endTime;
+
+  // Determine if the match is today or tomorrow
+  const matchDate = kickoffDatetime.toLocaleDateString();
+  const today = new Date().toLocaleDateString();
+  const tomorrow = new Date(Date.now() + 86400000).toLocaleDateString(); // 24 hours from now
+
+  let matchStatus = '';
+
+  if (isInPlay) {
+    matchStatus = 'In Play';
+  } else if (matchDate === today) {
+    const matchTime = kickoffDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    matchStatus = `Today at ${matchTime}`;
+  } else if (matchDate === tomorrow) {
+    const matchTime = kickoffDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    matchStatus = `Tomorrow at ${matchTime}`;
+  } else {
+    const day = kickoffDatetime.toLocaleDateString('en-US', { weekday: 'long' });
+    const month = kickoffDatetime.toLocaleDateString('en-US', { month: 'short' });
+    const matchTime = kickoffDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    matchStatus = `${day}, ${kickoffDatetime.getDate()}${this.getDaySuffix(kickoffDatetime.getDate())} ${month} at ${matchTime}`;
+  }
 
   const homeTeamLogo = this.teamLogos[homeTeam] || 'https://via.placeholder.com/100';
   const awayTeamLogo = this.teamLogos[awayTeam] || 'https://via.placeholder.com/100';
@@ -156,7 +183,7 @@ render() {
           </div>
           <div class="vs-container">
             <div class="vs">VS</div>
-            <div class="kickoff-time">${matchDate}</div> <!-- Replaced startTime with matchDate -->
+            <div class="kickoff-time">${matchStatus}</div> <!-- Display the match status -->
           </div>
           <div class="team">
             <img src="${awayTeamLogo}" alt="${awayTeam} Logo" class="team-logo">
@@ -169,6 +196,17 @@ render() {
   `;
 
   this.setStyle();
+}
+
+// Helper function to get the day suffix (e.g., 1st, 2nd, 3rd, 4th, etc.)
+getDaySuffix(day) {
+  if (day > 3 && day < 21) return 'th'; // special case for 11th, 12th, 13th...
+  switch (day % 10) {
+    case 1: return 'st';
+    case 2: return 'nd';
+    case 3: return 'rd';
+    default: return 'th';
+  }
 }
 
   setStyle() {
