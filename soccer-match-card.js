@@ -86,7 +86,7 @@ class SoccerMatchCard extends HTMLElement {
 
   async fetchTeamLogo(teamName) {
     // Check if the logo exists locally
-    const localLogoPath = `/local/images/team_logos/${teamName.toLowerCase().replace(/ /g, '_')}.png`;
+    const localLogoPath = `/local/images/team_logos/${teamName.toLowerCase().replace(/ /g, '_')}.jpg`;
     try {
       const response = await fetch(localLogoPath);
       if (response.ok) {
@@ -113,8 +113,9 @@ class SoccerMatchCard extends HTMLElement {
           const logoUrl = team.strBadge;
 
           // Use Home Assistant's downloader service to store the logo locally
-          const logoFilename = `${teamName.toLowerCase().replace(/ /g, '_')}.png`;
+          const logoFilename = `${teamName.toLowerCase().replace(/ /g, '_')}.jpg`;
           await this._hass.callService('downloader', 'download_file', {
+            overwrite: true,
             url: logoUrl,
             filename: `${logoFilename}`,
           });
@@ -123,11 +124,11 @@ class SoccerMatchCard extends HTMLElement {
           return `/local/images/team_logos/${logoFilename}`;
         } else {
           console.warn(`No logo found for team: ${teamName}`);
-          return '/local/images/team_logos/no_image_available.png'; // Default logo if not found
+          return '/local/images/team_logos/no_image_available.jpg'; // Default logo if not found
         }
       } catch (error) {
         console.error(`Error fetching logo for ${teamName}:`, error);
-        return '/local/images/team_logos/no_image_available.png'; // Default logo on error
+        return '/local/images/team_logos/no_image_available.jpg'; // Default logo on error
       }
     }
   }
@@ -206,8 +207,8 @@ class SoccerMatchCard extends HTMLElement {
       return;
     }
 
-    const homeTeamLogo = this.teamLogos[homeTeam] || '/local/images/team_logos/default.png';
-    const awayTeamLogo = this.teamLogos[awayTeam] || '/local/images/team_logos/default.png';
+    const homeTeamLogo = this.teamLogos[homeTeam] || '/local/images/team_logos/no_image_available.jpg';
+    const awayTeamLogo = this.teamLogos[awayTeam] || '/local/images/team_logos/no_image_available.jpg';
 
     // Dynamically set the margin for location
     const locationStyle = location ? '' : 'margin-bottom: 20px;';
