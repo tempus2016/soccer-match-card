@@ -107,7 +107,7 @@ class SoccerMatchCard extends HTMLElement {
 
         // Use Home Assistant's downloader service to store the logo locally
         const logoFilename = teamName.toLowerCase().replace(/ /g, '_') + '.png';
-        await this._hass.callService('downloader.download_file', {
+        await this._hass.callService('downloader', 'download_file', {
           url: logoUrl,
           filename: `${logoFilename}`,
         });
