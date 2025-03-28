@@ -86,7 +86,7 @@ class SoccerMatchCard extends HTMLElement {
 
   async fetchTeamLogo(teamName) {
     // Check if the logo exists locally
-    const localLogoPath = `/local/images/team_logos/${teamName.toLowerCase().replace(/ /g, '_')}.jpg`;
+    const localLogoPath = `/local/teamlogos/${teamName.toLowerCase().replace(/ /g, '_')}.jpg`;
     try {
       const response = await fetch(localLogoPath);
       if (response.ok) {
@@ -121,14 +121,14 @@ class SoccerMatchCard extends HTMLElement {
           });
 
           // Return the local path to the logo
-          return `/local/images/team_logos/${logoFilename}`;
+          return `/local/teamlogos/${logoFilename}`;
         } else {
           console.warn(`No logo found for team: ${teamName}`);
-          return '/local/images/team_logos/no_image_available.jpg'; // Default logo if not found
+          return '/local/teamlogos/no_image_available.jpg'; // Default logo if not found
         }
       } catch (error) {
         console.error(`Error fetching logo for ${teamName}:`, error);
-        return '/local/images/team_logos/no_image_available.jpg'; // Default logo on error
+        return '/local/teamlogos/no_image_available.jpg'; // Default logo on error
       }
     }
   }
@@ -207,8 +207,8 @@ class SoccerMatchCard extends HTMLElement {
       return;
     }
 
-    const homeTeamLogo = this.teamLogos[homeTeam] || '/local/images/team_logos/no_image_available.jpg';
-    const awayTeamLogo = this.teamLogos[awayTeam] || '/local/images/team_logos/no_image_available.jpg';
+    const homeTeamLogo = this.teamLogos[homeTeam] || '/local/teamlogos/no_image_available.jpg';
+    const awayTeamLogo = this.teamLogos[awayTeam] || '/local/teamlogos/no_image_available.jpg';
 
     // Dynamically set the margin for location
     const locationStyle = location ? '' : 'margin-bottom: 20px;';
