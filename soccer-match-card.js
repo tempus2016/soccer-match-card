@@ -188,6 +188,9 @@ render() {
   const homeTeamLogo = this.teamLogos[homeTeam] || 'https://via.placeholder.com/100';
   const awayTeamLogo = this.teamLogos[awayTeam] || 'https://via.placeholder.com/100';
 
+  // Dynamically set the margin for location
+  const locationStyle = location ? '' : 'margin-bottom: 20px;';
+
   this.shadowRoot.innerHTML = `
     <ha-card>
       <div class="match-container">
@@ -206,7 +209,7 @@ render() {
             <div class="team-name">${awayTeam}</div>
           </div>
         </div>
-        <div class="location">${location}</div>
+        <div class="location" style="${locationStyle}">${location}</div> <!-- Add conditional margin -->
       </div>
     </ha-card>
   `;
@@ -329,7 +332,6 @@ setStyle() {
   `;
   this.shadowRoot.appendChild(style);
 }
-
 
   static getConfigElement() {
     return document.createElement('soccer-match-card-editor');
