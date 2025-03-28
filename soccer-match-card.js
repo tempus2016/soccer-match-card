@@ -219,7 +219,7 @@ getDaySuffix(day) {
 
 
 
-.setStyle() {
+setStyle() {
   const style = document.createElement('style');
   style.textContent = `
     ha-card {
