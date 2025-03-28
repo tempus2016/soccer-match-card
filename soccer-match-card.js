@@ -180,10 +180,10 @@ let matchStatus = '';
 
 if (isInPlay) {
   const matchTime = kickoffDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  matchStatus = `<span class="status-line">${matchTime}</span><span class="status-line">In Play</span>`;
+  matchStatus = `<span class="status-line start-time">In Play</span>`;
 } else if (matchDate === today) {
   const matchTime = kickoffDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  matchStatus = `<span class="status-line">${matchTime}</span><span class="status-line">Today</span>`;
+  matchStatus = `<span class="status-line start-time">${matchTime}</span><span class="status-line">Today</span>`;
 } else if (matchDate === tomorrow) {
   const matchTime = kickoffDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   matchStatus = `<span class="status-line start-time">${matchTime}</span><span class="status-line"><p>Tomorrow</p></span>`;
@@ -319,7 +319,7 @@ setStyle() {
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      flex: 0.5;
+      flex: 0.6;
       color: #fff;
     }
 
@@ -344,7 +344,7 @@ setStyle() {
 
     .status-line p {
       font-size: 16px;
-      line-height: 18px;
+      line-height: 0px;
     }
 
     .start-time {
