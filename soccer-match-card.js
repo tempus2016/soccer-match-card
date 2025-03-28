@@ -294,6 +294,7 @@ getDaySuffix(day) {
       .kickoff-time {
         font-size: 14px;
         color: #ccc;
+        text-align: center;
       }
 
       .location {
