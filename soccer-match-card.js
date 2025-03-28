@@ -109,7 +109,7 @@ class SoccerMatchCard extends HTMLElement {
         const logoFilename = teamName.toLowerCase().replace(/ /g, '_') + '.png';
         await this._hass.callService('downloader.download_file', {
           url: logoUrl,
-          filename: `/config/www/images/team_logos/${logoFilename}`,
+          filename: `${logoFilename}`,
         });
 
         // Return the local path to the logo
