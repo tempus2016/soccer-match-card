@@ -314,8 +314,78 @@ class SoccerMatchCard extends HTMLElement {
         text-align: center;
       }
     `;
-    this.shadowRoot.appendChild(style);
+  this.shadowRoot.appendChild(style);
+}
+
+  static getConfigElement() {
+    return document.createElement('soccer-match-card-editor');
+  }
+
+  static getStubConfig() {
+    return { entity: 'sensor.example_sensor' };
   }
 }
 
 customElements.define('soccer-match-card', SoccerMatchCard);
+
+// Optional: Basic editor if you're adding this to HACS with editable UI
+class SoccerMatchCardEditor extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+  }
+
+  setConfig(config) {
+    this._config = config || {};
+    this.render();
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    this.render();
+  }
+
+  render() {
+    if (!this._hass) return;
+
+    const entity = this._config?.entity || '';
+
+    this.shadowRoot.innerHTML = `
+      <style>
+        .form { padding: 16px; }
+      </style>
+      <div class="form">
+        <ha-entity-picker
+          label="Select Sensor Entity"
+          .hass=${this._hass}
+          .value=${entity}
+          .configValue=${"entity"}
+          include-domains="sensor"
+        ></ha-entity-picker>
+      </div>
+    `;
+    this.shadowRoot
+      .querySelector('ha-entity-picker')
+      ?.addEventListener('value-changed', (e) => this._valueChanged(e));
+  }
+
+  _valueChanged(ev) {
+    const target = ev.target;
+    if (!this._config || !target) return;
+
+    const value = target.value;
+
+    if (this._config[target.configValue] === value) return;
+
+    this._config = {
+      ...this._config,
+      [target.configValue]: value,
+    };
+
+    this.dispatchEvent(new CustomEvent('config-changed', {
+      detail: { config: this._config },
+    }));
+  }
+}
+
+customElements.define('soccer-match-card-editor', SoccerMatchCardEditor);
