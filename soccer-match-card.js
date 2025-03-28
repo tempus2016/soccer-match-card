@@ -155,13 +155,13 @@ render() {
   let matchStatus = '';
 
   if (isInPlay) {
-    matchStatus = 'In Play';
+    matchStatus = `<span class="status-line">In Play</span>`;
   } else if (matchDate === today) {
     const matchTime = kickoffDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    matchStatus = `Today at ${matchTime}`;
+    matchStatus = `<span class="status-line">Today</span><span class="status-line">${matchTime}</span>`;
   } else if (matchDate === tomorrow) {
     const matchTime = kickoffDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    matchStatus = `Tomorrow at ${matchTime}`;
+    matchStatus = `<span class="status-line">Tomorrow</span><span class="status-line">${matchTime}</span>`;
   } else {
     const day = kickoffDatetime.getDate();
     const suffix = this.getDaySuffix(day); // Get the correct suffix
@@ -170,7 +170,7 @@ render() {
     const month = kickoffDatetime.toLocaleDateString('en-US', { month: 'short' });
     const matchTime = kickoffDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    matchStatus = `${dayOfWeek}, ${day}${suffix} ${month} at ${matchTime}`;
+    matchStatus = `<span class="status-line">${dayOfWeek}</span><span class="status-line">${day}${suffix} ${month}</span><span class="status-line">${matchTime}</span>`;
   }
 
   const homeTeamLogo = this.teamLogos[homeTeam] || 'https://via.placeholder.com/100';
@@ -218,94 +218,103 @@ getDaySuffix(day) {
 }
 
 
-  setStyle() {
-    const style = document.createElement('style');
-    style.textContent = `
-      ha-card {
-        border-radius: 12px;
-        overflow: hidden;
-        background: linear-gradient(to bottom, #002147 0%, #004080 100%);
-        color: #fff;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      }
 
-      .match-container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 16px;
-      }
+.setStyle() {
+  const style = document.createElement('style');
+  style.textContent = `
+    ha-card {
+      border-radius: 12px;
+      overflow: hidden;
+      background: linear-gradient(to bottom, #002147 0%, #004080 100%);
+      color: #fff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
 
-      .header {
-        width: 100%;
-        text-align: center;
-        background-color: #d71920;
-        color: #fff;
-        font-size: 18px;
-        font-weight: bold;
-        padding: 8px 0;
-        letter-spacing: 1px;
-      }
+    .match-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px;
+    }
 
-      .teams-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        width: 100%;
-        margin: 16px 0;
-      }
+    .header {
+      width: 100%;
+      text-align: center;
+      background-color: #d71920;
+      color: #fff;
+      font-size: 18px;
+      font-weight: bold;
+      padding: 8px 0;
+      letter-spacing: 1px;
+    }
 
-      .team {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        flex: 1;
-      }
+    .teams-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      margin: 16px 0;
+    }
 
-      .team-logo {
-        width: 80px;
-        height: 80px;
-        margin-bottom: 8px;
-        object-fit: contain;
-      }
+    .team {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+    }
 
-      .team-name {
-        font-size: 16px;
-        font-weight: 600;
-        text-align: center;
-      }
+    .team-logo {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 8px;
+      object-fit: contain;
+    }
 
-      .vs-container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        flex: 0.5;
-        color: #fff;
-      }
+    .team-name {
+      font-size: 16px;
+      font-weight: 600;
+      text-align: center;
+    }
 
-      .vs {
-        font-size: 20px;
-        font-weight: bold;
-        margin-bottom: 8px;
-      }
+    .vs-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 0.5;
+      color: #fff;
+    }
 
-      .kickoff-time {
-        font-size: 14px;
-        color: #ccc;
-        text-align: center;
-      }
+    .vs {
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
 
-      .location {
-        margin-top: 16px;
-        font-size: 14px;
-        color: #ddd;
-        text-align: center;
-      }
-    `;
-    this.shadowRoot.appendChild(style);
-  }
+    .kickoff-time {
+      font-size: 14px;
+      color: #ccc;
+      text-align: center;
+    }
+
+    .status-line {
+      display: block;
+      text-align: center;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .location {
+      // margin-top: 16px;
+      font-size: 14px;
+      color: #ddd;
+      text-align: center;
+    }
+  `;
+  this.shadowRoot.appendChild(style);
+}
+
 
   static getConfigElement() {
     return document.createElement('soccer-match-card-editor');
