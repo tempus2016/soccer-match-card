@@ -123,11 +123,11 @@ class SoccerMatchCard extends HTMLElement {
           return `/local/images/team_logos/${logoFilename}`;
         } else {
           console.warn(`No logo found for team: ${teamName}`);
-          return '/local/images/team_logos/default.png'; // Default logo if not found
+          return '/local/images/team_logos/no_image_available.png'; // Default logo if not found
         }
       } catch (error) {
         console.error(`Error fetching logo for ${teamName}:`, error);
-        return '/local/images/team_logos/default.png'; // Default logo on error
+        return '/local/images/team_logos/no_image_available.png'; // Default logo on error
       }
     }
   }
