@@ -221,7 +221,6 @@ if (!homeTeam || !awayTeam || !matchStatus || !league) {
               <div class="team-name">${homeTeam}</div>
             </div>
             <div class="vs-container">
-              <div class="vs">VS</div>
               <div class="kickoff-time">${matchStatus}</div> <!-- Display the match status -->
             </div>
             <div class="team">
