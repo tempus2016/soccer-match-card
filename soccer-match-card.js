@@ -239,81 +239,119 @@ class SoccerMatchCard extends HTMLElement {
     this.setStyle();
   }
 
-  // Helper function to get the correct day suffix
-  getDaySuffix(day) {
-    if (day >= 11 && day <= 13) {
-      return 'th';
-    }
-    switch (day % 10) {
-      case 1: return 'st';
-      case 2: return 'nd';
-      case 3: return 'rd';
-      default: return 'th';
-    }
+// Helper function to get the correct day suffix
+getDaySuffix(day) {
+  if (day === 11 || day === 12 || day === 13) {
+    return 'th'; // Special case for 11th, 12th, and 13th
   }
-
-  // Helper function to check if an attribute is valid
-  isValidAttribute(attribute) {
-    return attribute !== null && attribute !== undefined && attribute !== '';
+  
+  // Determine the correct suffix based on the day
+  switch (day % 10) {
+    case 1: return 'st';
+    case 2: return 'nd';
+    case 3: return 'rd';
+    default: return 'th';
   }
+}
 
-  setStyle() {
-    const style = document.createElement('style');
-    style.textContent = `
-      ha-card {
-        background: var(--card-background-color);
-        color: var(--primary-text-color);
-        border-radius: 12px;
-        padding: 16px;
-        overflow: hidden;
-      }
-      .match-container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-      }
-      .teams-row {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        margin: 16px 0;
-      }
-      .team {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        margin: 0 10px;
-      }
-      .team-logo {
-        width: 60px;
-        height: 60px;
-        object-fit: contain;
-      }
-      .team-name {
-        font-weight: bold;
-        margin-top: 8px;
-        text-align: center;
-      }
-      .vs-container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-      }
-      .vs {
-        font-size: 24px;
-        font-weight: bold;
-      }
-      .status-line {
-        font-size: 14px;
-        color: var(--secondary-text-color);
-      }
-      .location {
-        font-size: 14px;
-        color: var(--secondary-text-color);
-        text-align: center;
-      }
-    `;
+// Helper function to check if an attribute is valid (not empty or "Unknown")
+isValidAttribute(attribute) {
+  return attribute && attribute.toLowerCase() !== 'unknown' && attribute !== '';
+}
+
+setStyle() {
+  const style = document.createElement('style');
+  style.textContent = `
+    ha-card {
+      border-radius: 12px;
+      overflow: hidden;
+      background: linear-gradient(to bottom, #002147 0%, #004080 100%);
+      color: #fff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .match-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px;
+    }
+
+    .header {
+      width: 100%;
+      text-align: center;
+      background-color: #d71920;
+      color: #fff;
+      font-size: 18px;
+      font-weight: bold;
+      padding: 8px 0;
+      letter-spacing: 1px;
+    }
+
+    .teams-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      margin: 16px 0;
+    }
+
+    .team {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+    }
+
+    .team-logo {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 8px;
+      object-fit: contain;
+    }
+
+    .team-name {
+      font-size: 16px;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .vs-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 0.5;
+      color: #fff;
+    }
+
+    .vs {
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .kickoff-time {
+      font-size: 14px;
+      color: #ccc;
+      text-align: center;
+    }
+
+    .status-line {
+      display: block;
+      text-align: center;
+      font-size: 14px;
+      // font-weight: bold;
+    }
+
+    .location {
+      // margin-top: 16px;
+      font-size: 14px;
+      color: #ddd;
+      text-align: center;
+    }
+  `;
   this.shadowRoot.appendChild(style);
 }
 
@@ -364,6 +402,7 @@ class SoccerMatchCardEditor extends HTMLElement {
         ></ha-entity-picker>
       </div>
     `;
+
     this.shadowRoot
       .querySelector('ha-entity-picker')
       ?.addEventListener('value-changed', (e) => this._valueChanged(e));
