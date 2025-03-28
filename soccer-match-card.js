@@ -87,41 +87,48 @@ class SoccerMatchCard extends HTMLElement {
   async fetchTeamLogo(teamName) {
     // Check if the logo exists locally
     const localLogoPath = `/local/images/team_logos/${teamName.toLowerCase().replace(/ /g, '_')}.png`;
-    if (this._hass.states['sensor.local_logo_' + teamName]) {
-      return localLogoPath;
-    }
-
-    // Logo doesn't exist locally, fetch from API
-    const apiKey = '3';
-    const url = `https://www.thesportsdb.com/api/v1/json/${apiKey}/searchteams.php?t=${encodeURIComponent(teamName)}`;
-
     try {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`Failed to fetch team info for ${teamName}`);
-
-      const data = await response.json();
-      const team = data.teams ? data.teams[0] : null;
-
-      if (team && team.strBadge) {
-        const logoUrl = team.strBadge;
-
-        // Use Home Assistant's downloader service to store the logo locally
-        const logoFilename = teamName.toLowerCase().replace(/ /g, '_') + '.png';
-        await this._hass.callService('downloader', 'download_file', {
-          url: logoUrl,
-          filename: `${logoFilename}`,
-        });
-
-        // Return the local path to the logo
-        return `/local/images/team_logos/${logoFilename}`;
+      const response = await fetch(localLogoPath);
+      if (response.ok) {
+        // Logo found locally
+        return localLogoPath;
       } else {
-        console.warn(`No logo found for team: ${teamName}`);
-        return '/local/images/team_logos/default.png'; // Default logo if not found
+        throw new Error('Logo not found locally');
       }
-
     } catch (error) {
-      console.error(`Error fetching logo for ${teamName}:`, error);
-      return '/local/images/team_logos/default.png'; // Default logo on error
+      console.log('Logo not found locally, fetching from API...');
+
+      // Logo doesn't exist locally, fetch from API
+      const apiKey = '3';
+      const url = `https://www.thesportsdb.com/api/v1/json/${apiKey}/searchteams.php?t=${encodeURIComponent(teamName)}`;
+
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`Failed to fetch team info for ${teamName}`);
+
+        const data = await response.json();
+        const team = data.teams ? data.teams[0] : null;
+
+        if (team && team.strBadge) {
+          const logoUrl = team.strBadge;
+
+          // Use Home Assistant's downloader service to store the logo locally
+          const logoFilename = `${teamName.toLowerCase().replace(/ /g, '_')}.png`;
+          await this._hass.callService('downloader', 'download_file', {
+            url: logoUrl,
+            filename: `images/team_logos/${logoFilename}`,
+          });
+
+          // Return the local path to the logo
+          return `/local/images/team_logos/${logoFilename}`;
+        } else {
+          console.warn(`No logo found for team: ${teamName}`);
+          return '/local/images/team_logos/default.png'; // Default logo if not found
+        }
+      } catch (error) {
+        console.error(`Error fetching logo for ${teamName}:`, error);
+        return '/local/images/team_logos/default.png'; // Default logo on error
+      }
     }
   }
 
@@ -130,7 +137,8 @@ class SoccerMatchCard extends HTMLElement {
       this.shadowRoot.innerHTML = `
         <ha-card>
           <div style="color:white; padding: 16px;">❌ Waiting for hass/config...</div>
-        </ha-card>`;
+        </ha-card>
+      `;
       return;
     }
 
@@ -141,7 +149,8 @@ class SoccerMatchCard extends HTMLElement {
       this.shadowRoot.innerHTML = `
         <ha-card>
           <div style="color:white; padding: 16px;">❌ Entity not found: ${entityId}</div>
-        </ha-card>`;
+        </ha-card>
+      `;
       return;
     }
 
@@ -192,7 +201,8 @@ class SoccerMatchCard extends HTMLElement {
       this.shadowRoot.innerHTML = `
         <ha-card>
           <div style="color:white; padding: 16px;">❌ Missing match information</div>
-        </ha-card>`;
+        </ha-card>
+      `;
       return;
     }
 
