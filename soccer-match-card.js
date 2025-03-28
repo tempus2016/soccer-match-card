@@ -86,7 +86,7 @@ class SoccerMatchCard extends HTMLElement {
 
   async fetchTeamLogo(teamName) {
     // Check if the logo exists locally
-    const localLogoPath = `/local/teamlogos/${teamName.toLowerCase().replace(/ /g, '_')}.jpg`;
+    const localLogoPath = `/local/teamlogos/${teamName.toLowerCase().replace(/ /g, '_')}.png`;
     try {
       const response = await fetch(localLogoPath);
       if (response.ok) {
@@ -113,7 +113,7 @@ class SoccerMatchCard extends HTMLElement {
           const logoUrl = team.strBadge;
 
           // Use Home Assistant's downloader service to store the logo locally
-          const logoFilename = `${teamName.toLowerCase().replace(/ /g, '_')}.jpg`;
+          const logoFilename = `${teamName.toLowerCase().replace(/ /g, '_')}.png`;
           await this._hass.callService('downloader', 'download_file', {
             overwrite: true,
             url: logoUrl,
@@ -124,11 +124,11 @@ class SoccerMatchCard extends HTMLElement {
           return `/local/teamlogos/${logoFilename}`;
         } else {
           console.warn(`No logo found for team: ${teamName}`);
-          return '/local/teamlogos/no_image_available.jpg'; // Default logo if not found
+          return '/local/teamlogos/no_image_available.png'; // Default logo if not found
         }
       } catch (error) {
         console.error(`Error fetching logo for ${teamName}:`, error);
-        return '/local/teamlogos/no_image_available.jpg'; // Default logo on error
+        return '/local/teamlogos/no_image_available.png'; // Default logo on error
       }
     }
   }
@@ -207,8 +207,8 @@ class SoccerMatchCard extends HTMLElement {
       return;
     }
 
-    const homeTeamLogo = this.teamLogos[homeTeam] || '/local/teamlogos/no_image_available.jpg';
-    const awayTeamLogo = this.teamLogos[awayTeam] || '/local/teamlogos/no_image_available.jpg';
+    const homeTeamLogo = this.teamLogos[homeTeam] || '/local/teamlogos/no_image_available.png';
+    const awayTeamLogo = this.teamLogos[awayTeam] || '/local/teamlogos/no_image_available.png';
 
     // Dynamically set the margin for location
     const locationStyle = location ? '' : 'margin-bottom: 20px;';
