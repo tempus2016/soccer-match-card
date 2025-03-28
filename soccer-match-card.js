@@ -302,7 +302,7 @@ setStyle() {
       display: block;
       text-align: center;
       font-size: 14px;
-      font-weight: bold;
+      // font-weight: bold;
     }
 
     .location {
