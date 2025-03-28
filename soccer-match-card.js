@@ -135,14 +135,17 @@ render() {
   }
 
   const attributes = stateObj.attributes;
-  const league = attributes.league || 'Unknown League';
-  const homeTeam = attributes.home_team || 'Home Team';
-  const awayTeam = attributes.away_team || 'Away Team';
-  const location = attributes.location || 'Unknown Location';
+
+  // Check each attribute before displaying
+  const league = this.isValidAttribute(attributes.league) ? attributes.league : '';
+  const homeTeam = this.isValidAttribute(attributes.home_team) ? attributes.home_team : '';
+  const awayTeam = this.isValidAttribute(attributes.away_team) ? attributes.away_team : '';
+  const location = this.isValidAttribute(attributes.location) ? attributes.location : '';
   const kickoffDatetime = new Date(attributes.kickoff_datetime);
-  const now = new Date();
   const startTime = new Date(attributes.start_time);
   const endTime = new Date(attributes.end_time);
+
+  const now = new Date();
 
   // Check if the match is "In Play"
   const isInPlay = now >= startTime && now <= endTime;
@@ -171,6 +174,15 @@ render() {
     const matchTime = kickoffDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     matchStatus = `<span class="status-line">${dayOfWeek}</span><span class="status-line">${day}${suffix} ${month}</span><span class="status-line">${matchTime}</span>`;
+  }
+
+  // Skip rendering if essential attributes are missing
+  if (!homeTeam || !awayTeam || !matchStatus || !league) {
+    this.shadowRoot.innerHTML = `
+      <ha-card>
+        <div style="color:white; padding: 16px;">❌ Missing match information</div>
+      </ha-card>`;
+    return;
   }
 
   const homeTeamLogo = this.teamLogos[homeTeam] || 'https://via.placeholder.com/100';
@@ -217,7 +229,10 @@ getDaySuffix(day) {
   }
 }
 
-
+// Helper function to check if an attribute is valid (not empty or "Unknown")
+isValidAttribute(attribute) {
+  return attribute && attribute.toLowerCase() !== 'unknown' && attribute !== '';
+}
 
 setStyle() {
   const style = document.createElement('style');
