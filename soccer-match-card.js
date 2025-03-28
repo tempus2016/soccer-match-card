@@ -168,44 +168,42 @@ class SoccerMatchCard extends HTMLElement {
 
     const now = new Date();
 
-    // Check if the match is "In Play"
-    const isInPlay = now >= startTime && now <= endTime;
+// Check if the match is "In Play"
+const isInPlay = now >= startTime && now <= endTime;
 
-    // Determine if the match is today or tomorrow
-    const matchDate = kickoffDatetime.toLocaleDateString();
-    const today = new Date().toLocaleDateString();
-    const tomorrow = new Date(Date.now() + 86400000).toLocaleDateString(); // 24 hours from now
+// Determine if the match is today or tomorrow
+const matchDate = kickoffDatetime.toLocaleDateString();
+const today = new Date().toLocaleDateString();
+const tomorrow = new Date(Date.now() + 86400000).toLocaleDateString(); // 24 hours from now
 
-    let matchStatus = '';
+let matchStatus = '';
 
-    if (isInPlay) {
-      matchStatus = `<span class="status-line">In Play</span>`;
-    } else if (matchDate === today) {
-      const matchTime = kickoffDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      matchStatus = `<span class="status-line">Today</span><span class="status-line">${matchTime}</span>`;
-    } else if (matchDate === tomorrow) {
-      const matchTime = kickoffDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      matchStatus = `<span class="status-line">Tomorrow</span><span class="status-line">${matchTime}</span>`;
-    } else {
-      const day = kickoffDatetime.getDate();
-      const suffix = this.getDaySuffix(day); // Get the correct suffix
+if (isInPlay) {
+  const matchTime = kickoffDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  matchStatus = `<span class="status-line">${matchTime}</span><span class="status-line">In Play</span>`;
+} else if (matchDate === today) {
+  const matchTime = kickoffDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  matchStatus = `<span class="status-line">${matchTime}</span><span class="status-line">Today</span>`;
+} else if (matchDate === tomorrow) {
+  const matchTime = kickoffDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  matchStatus = `<span class="status-line">${matchTime}</span><span class="status-line">Tomorrow</span>`;
+} else {
+  const day = kickoffDatetime.getDate();
+  const month = kickoffDatetime.toLocaleDateString('en-US', { month: 'long' }); // Get full month name
+  const matchTime = kickoffDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-      const dayOfWeek = kickoffDatetime.toLocaleDateString('en-US', { weekday: 'long' });
-      const month = kickoffDatetime.toLocaleDateString('en-US', { month: 'short' });
-      const matchTime = kickoffDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  matchStatus = `<span class="status-line">${matchTime}</span><span class="status-line">${day} ${month}</span>`;
+}
 
-      matchStatus = `<span class="status-line">${dayOfWeek}</span><span class="status-line">${day}${suffix} ${month}</span><span class="status-line">${matchTime}</span>`;
-    }
-
-    // Skip rendering if essential attributes are missing
-    if (!homeTeam || !awayTeam || !matchStatus || !league) {
-      this.shadowRoot.innerHTML = `
-        <ha-card>
-          <div style="color:white; padding: 16px;">❌ Missing match information</div>
-        </ha-card>
-      `;
-      return;
-    }
+// Skip rendering if essential attributes are missing
+if (!homeTeam || !awayTeam || !matchStatus || !league) {
+  this.shadowRoot.innerHTML = `
+    <ha-card>
+      <div style="color:white; padding: 16px;">❌ Missing match information</div>
+    </ha-card>
+  `;
+  return;
+}
 
     const homeTeamLogo = this.teamLogos[homeTeam] || '/local/teamlogos/no_image_available.png';
     const awayTeamLogo = this.teamLogos[awayTeam] || '/local/teamlogos/no_image_available.png';
