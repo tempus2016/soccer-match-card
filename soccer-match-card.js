@@ -186,7 +186,7 @@ if (isInPlay) {
   matchStatus = `<span class="status-line">${matchTime}</span><span class="status-line">Today</span>`;
 } else if (matchDate === tomorrow) {
   const matchTime = kickoffDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  matchStatus = `<span class="status-line">${matchTime}</span><span class="status-line">Tomorrow</span>`;
+  matchStatus = `<span class="status-line start-time">${matchTime}</span><span class="status-line"><p>Tomorrow</p></span>`;
 } else {
   const day = kickoffDatetime.getDate();
   const month = kickoffDatetime.toLocaleDateString('en-US', { month: 'long' }); // Get full month name
