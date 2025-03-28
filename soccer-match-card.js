@@ -192,7 +192,7 @@ if (isInPlay) {
   const month = kickoffDatetime.toLocaleDateString('en-US', { month: 'long' }); // Get full month name
   const matchTime = kickoffDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-  matchStatus = `<span class="status-line">${matchTime}</span><span class="status-line">${day} ${month}</span>`;
+  matchStatus = `<span class="status-line start-time">${matchTime}</span><span class="status-line"><p>${day} ${month}</p></span>`;
 }
 
 // Skip rendering if essential attributes are missing
@@ -339,7 +339,17 @@ setStyle() {
       display: block;
       text-align: center;
       font-size: 14px;
-      // font-weight: bold;
+      font-weight: bold;
+    }
+
+    .status-line p {
+      font-size: 16px;
+      line-height: 18px;
+    }
+
+    .start-time {
+      font-size: 30px;
+      height: 34px;
     }
 
     .location {
