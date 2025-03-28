@@ -163,10 +163,14 @@ render() {
     const matchTime = kickoffDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     matchStatus = `Tomorrow at ${matchTime}`;
   } else {
-    const day = kickoffDatetime.toLocaleDateString('en-US', { weekday: 'long' });
+    const day = kickoffDatetime.getDate();
+    const suffix = this.getDaySuffix(day); // Get the correct suffix
+
+    const dayOfWeek = kickoffDatetime.toLocaleDateString('en-US', { weekday: 'long' });
     const month = kickoffDatetime.toLocaleDateString('en-US', { month: 'short' });
     const matchTime = kickoffDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    matchStatus = `${day}, ${kickoffDatetime.getDate()}${this.getDaySuffix(kickoffDatetime.getDate())} ${month} at ${matchTime}`;
+
+    matchStatus = `${dayOfWeek}, ${day}${suffix} ${month} at ${matchTime}`;
   }
 
   const homeTeamLogo = this.teamLogos[homeTeam] || 'https://via.placeholder.com/100';
@@ -198,9 +202,13 @@ render() {
   this.setStyle();
 }
 
-// Helper function to get the day suffix (e.g., 1st, 2nd, 3rd, 4th, etc.)
+// Helper function to get the correct day suffix
 getDaySuffix(day) {
-  if (day > 3 && day < 21) return 'th'; // special case for 11th, 12th, 13th...
+  if (day === 11 || day === 12 || day === 13) {
+    return 'th'; // Special case for 11th, 12th, and 13th
+  }
+  
+  // Determine the correct suffix based on the day
   switch (day % 10) {
     case 1: return 'st';
     case 2: return 'nd';
@@ -208,6 +216,7 @@ getDaySuffix(day) {
     default: return 'th';
   }
 }
+
 
   setStyle() {
     const style = document.createElement('style');
