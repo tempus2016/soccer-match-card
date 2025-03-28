@@ -309,8 +309,8 @@ setStyle() {
     }
 
     .team-name {
-      font-size: 16px;
-      font-weight: 600;
+      font-size: 20px;
+      // font-weight: 600;
       text-align: center;
     }
 
@@ -331,7 +331,6 @@ setStyle() {
 
     .kickoff-time {
       font-size: 14px;
-      color: #ccc;
       text-align: center;
     }
 
@@ -345,11 +344,12 @@ setStyle() {
     .status-line p {
       font-size: 16px;
       line-height: 0px;
+      color: #ccc;
     }
 
     .start-time {
       font-size: 30px;
-      height: 34px;
+      height: 22px;
     }
 
     .location {
