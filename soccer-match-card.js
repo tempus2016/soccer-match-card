@@ -72,33 +72,6 @@ class SoccerMatchCard extends HTMLElement {
     return changed;
   }
 
-async fetchLiveScore(homeTeam, awayTeam) {
-  // Format the teams into the required format (homeTeam_vs_awayTeam)
-  const matchString = `${homeTeam.toLowerCase().replace(/ /g, '_')}_vs_${awayTeam.toLowerCase().replace(/ /g, '_')}`;
-  console.error(`${matchString}`);
-  const apiKey = '3';
-  const url = `https://www.thesportsdb.com/api/v1/json/${apiKey}/searchevents.php?e=${matchString}`;
-  console.error(`${url}`);
-
-  try {
-    const response = await fetch(url);
-    const data = await response.json();
-
-    if (data && data.events && data.events.length > 0) {
-      const event = data.events[0];
-      const homeScore = event.strHomeScore || 'N/A';
-      const awayScore = event.strAwayScore || 'N/A';
-      return `${homeScore} - ${awayScore}`;
-    } else {
-      console.warn(`No live score found for ${homeTeam} vs ${awayTeam}`);
-      return 'Score not available';
-    }
-  } catch (error) {
-    console.error(`Error fetching live score:`, error);
-    return 'Error fetching score';
-  }
-}
-
   async loadTeamLogos(homeTeam, awayTeam) {
     const homeLogo = await this.fetchTeamLogo(homeTeam);
     const awayLogo = await this.fetchTeamLogo(awayTeam);
@@ -160,110 +133,108 @@ async fetchLiveScore(homeTeam, awayTeam) {
     }
   }
 
-  
-async render() {
-  if (!this._hass || !this.config) {
-    this.shadowRoot.innerHTML = `
-      <ha-card>
-        <div style="color:white; padding: 16px;">❌ Waiting for hass/config...</div>
-      </ha-card>
-    `;
-    return;
-  }
+  render() {
+    if (!this._hass || !this.config) {
+      this.shadowRoot.innerHTML = `
+        <ha-card>
+          <div style="color:white; padding: 16px;">❌ Waiting for hass/config...</div>
+        </ha-card>
+      `;
+      return;
+    }
 
-  const entityId = this.config.entity;
-  const stateObj = this._hass.states[entityId];
+    const entityId = this.config.entity;
+    const stateObj = this._hass.states[entityId];
 
-  if (!stateObj) {
-    this.shadowRoot.innerHTML = `
-      <ha-card>
-        <div style="color:white; padding: 16px;">❌ Entity not found: ${entityId}</div>
-      </ha-card>
-    `;
-    return;
-  }
+    if (!stateObj) {
+      this.shadowRoot.innerHTML = `
+        <ha-card>
+          <div style="color:white; padding: 16px;">❌ Entity not found: ${entityId}</div>
+        </ha-card>
+      `;
+      return;
+    }
 
-  const attributes = stateObj.attributes;
-  const homeTeam = attributes.home_team || 'Home Team';
-  const awayTeam = attributes.away_team || 'Away Team';
+    const attributes = stateObj.attributes;
 
-  const league = this.isValidAttribute(attributes.league) ? attributes.league : '';
-  const location = this.isValidAttribute(attributes.location) ? attributes.location : '';
-  const kickoffDatetime = new Date(attributes.kickoff_datetime);
-  const startTime = new Date(attributes.start_time);
-  const endTime = new Date(attributes.end_time);
+    // Check each attribute before displaying
+    const league = this.isValidAttribute(attributes.league) ? attributes.league : '';
+    const homeTeam = this.isValidAttribute(attributes.home_team) ? attributes.home_team : '';
+    const awayTeam = this.isValidAttribute(attributes.away_team) ? attributes.away_team : '';
+    const location = this.isValidAttribute(attributes.location) ? attributes.location : '';
+    const kickoffDatetime = new Date(attributes.kickoff_datetime);
+    const startTime = new Date(attributes.start_time);
+    const endTime = new Date(attributes.end_time);
 
-  const now = new Date();
+    const now = new Date();
 
-  // Check if the match is "In Play"
-  const isInPlay = now >= startTime && now <= endTime;
+// Check if the match is "In Play"
+const isInPlay = now >= startTime && now <= endTime;
 
-  // Determine if the match is today or tomorrow
-  const matchDate = kickoffDatetime.toLocaleDateString();
-  const today = new Date().toLocaleDateString();
-  const tomorrow = new Date(Date.now() + 86400000).toLocaleDateString(); // 24 hours from now
+// Determine if the match is today or tomorrow
+const matchDate = kickoffDatetime.toLocaleDateString();
+const today = new Date().toLocaleDateString();
+const tomorrow = new Date(Date.now() + 86400000).toLocaleDateString(); // 24 hours from now
 
-  let matchStatus = '';
+let matchStatus = '';
 
-  if (isInPlay) {
-    // Fetch live score when match is in play
-    const liveScore = await this.fetchLiveScore(homeTeam, awayTeam);
-    matchStatus = `<span class="status-line start-time">In Play: ${liveScore}</span>`;
-  } else if (matchDate === today) {
-    const matchTime = kickoffDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    matchStatus = `<span class="status-line start-time">${matchTime}</span><span class="status-line"><p>Today</p></span>`;
-  } else if (matchDate === tomorrow) {
-    const matchTime = kickoffDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    matchStatus = `<span class="status-line start-time">${matchTime}</span><span class="status-line"><p>Tomorrow</p></span>`;
-  } else {
-    const day = kickoffDatetime.getDate();
-    const month = kickoffDatetime.toLocaleDateString('en-US', { month: 'long' }); // Get full month name
-    const matchTime = kickoffDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+if (isInPlay) {
+  const matchTime = kickoffDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  matchStatus = `<span class="status-line start-time">In Play</span>`;
+} else if (matchDate === today) {
+  const matchTime = kickoffDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  matchStatus = `<span class="status-line start-time">${matchTime}</span><span class="status-line"><p>Today</p></span>`;
+} else if (matchDate === tomorrow) {
+  const matchTime = kickoffDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  matchStatus = `<span class="status-line start-time">${matchTime}</span><span class="status-line"><p>Tomorrow</p></span>`;
+} else {
+  const day = kickoffDatetime.getDate();
+  const month = kickoffDatetime.toLocaleDateString('en-US', { month: 'long' }); // Get full month name
+  const matchTime = kickoffDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    matchStatus = `<span class="status-line start-time">${matchTime}</span><span class="status-line"><p>${day} ${month}</p></span>`;
-  }
-
-  // Skip rendering if essential attributes are missing
-  if (!homeTeam || !awayTeam || !matchStatus || !league) {
-    this.shadowRoot.innerHTML = `
-      <ha-card>
-        <div style="color:white; padding: 16px;">❌ Missing match information</div>
-      </ha-card>
-    `;
-    return;
-  }
-
-  const homeTeamLogo = this.teamLogos[homeTeam] || '/local/teamlogos/no_image_available.png';
-  const awayTeamLogo = this.teamLogos[awayTeam] || '/local/teamlogos/no_image_available.png';
-
-  // Dynamically set the margin for location
-  const locationStyle = location ? '' : 'margin-bottom: 20px;';
-
-  this.shadowRoot.innerHTML = `
-    <ha-card>
-      <div class="match-container">
-        <div class="header">${league}</div>
-        <div class="teams-row">
-          <div class="team">
-            <img src="${homeTeamLogo}" alt="${homeTeam} Logo" class="team-logo">
-            <div class="team-name">${homeTeam}</div>
-          </div>
-          <div class="vs-container">
-            <div class="kickoff-time">${matchStatus}</div> <!-- Display the match status -->
-          </div>
-          <div class="team">
-            <img src="${awayTeamLogo}" alt="${awayTeam} Logo" class="team-logo">
-            <div class="team-name">${awayTeam}</div>
-          </div>
-        </div>
-        <div class="location" style="${locationStyle}">${location}</div> <!-- Add conditional margin -->
-      </div>
-    </ha-card>
-  `;
-
-  this.setStyle();
+  matchStatus = `<span class="status-line start-time">${matchTime}</span><span class="status-line"><p>${day} ${month}</p></span>`;
 }
 
+// Skip rendering if essential attributes are missing
+if (!homeTeam || !awayTeam || !matchStatus || !league) {
+  this.shadowRoot.innerHTML = `
+    <ha-card>
+      <div style="color:white; padding: 16px;">❌ Missing match information</div>
+    </ha-card>
+  `;
+  return;
+}
+
+    const homeTeamLogo = this.teamLogos[homeTeam] || '/local/teamlogos/no_image_available.png';
+    const awayTeamLogo = this.teamLogos[awayTeam] || '/local/teamlogos/no_image_available.png';
+
+    // Dynamically set the margin for location
+    const locationStyle = location ? '' : 'margin-bottom: 20px;';
+
+    this.shadowRoot.innerHTML = `
+      <ha-card>
+        <div class="match-container">
+          <div class="header">${league}</div>
+          <div class="teams-row">
+            <div class="team">
+              <img src="${homeTeamLogo}" alt="${homeTeam} Logo" class="team-logo">
+              <div class="team-name">${homeTeam}</div>
+            </div>
+            <div class="vs-container">
+              <div class="kickoff-time">${matchStatus}</div> <!-- Display the match status -->
+            </div>
+            <div class="team">
+              <img src="${awayTeamLogo}" alt="${awayTeam} Logo" class="team-logo">
+              <div class="team-name">${awayTeam}</div>
+            </div>
+          </div>
+          <div class="location" style="${locationStyle}">${location}</div> <!-- Add conditional margin -->
+        </div>
+      </ha-card>
+    `;
+
+    this.setStyle();
+  }
 
 // Helper function to get the correct day suffix
 getDaySuffix(day) {
