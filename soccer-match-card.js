@@ -77,6 +77,7 @@ async fetchLiveScore(homeTeam, awayTeam) {
   const matchString = `${homeTeam.toLowerCase().replace(/ /g, '_')}_vs_${awayTeam.toLowerCase().replace(/ /g, '_')}`;
   const apiKey = '3';
   const url = `https://www.thesportsdb.com/api/v1/json/${apiKey}/searchevents.php?e=${matchString}`;
+  console.log(`${url}`);
 
   try {
     const response = await fetch(url);
