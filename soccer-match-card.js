@@ -127,7 +127,7 @@ class SoccerMatchCard extends HTMLElement {
     }
   }
 
-  
+
 render() {
   if (!this._hass || !this.config) {
     this.shadowRoot.innerHTML = `
@@ -165,14 +165,9 @@ render() {
   // Check if the match is "In Play"
   const isInPlay = now >= startDatetime && now <= endDatetime;
 
-  // Determine if the match is today or tomorrow
-  const matchDate = startDatetime.toLocaleDateString();
-  const today = new Date().toLocaleDateString();
-  const tomorrow = new Date(Date.now() + 86400000).toLocaleDateString(); // 24 hours from now
-
+  // Extract time from the UTC startDatetime (do not adjust to local timezone)
   let matchStatus = '';
 
-  // Extract time from the UTC startDatetime (do not adjust to local timezone)
   if (isInPlay) {
     const matchTime = new Intl.DateTimeFormat('en-GB', {
       hour: '2-digit',
@@ -181,31 +176,14 @@ render() {
     }).format(startDatetime);
 
     matchStatus = `<span class="status-line start-time">${matchTime}</span>`;
-  } else if (matchDate === today) {
-    const matchTime = new Intl.DateTimeFormat('en-GB', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    }).format(startDatetime);
-
-    matchStatus = `<span class="status-line start-time">${matchTime}</span><span class="status-line"><p>Today</p></span>`;
-  } else if (matchDate === tomorrow) {
-    const matchTime = new Intl.DateTimeFormat('en-GB', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    }).format(startDatetime);
-    matchStatus = `<span class="status-line start-time">${matchTime}</span><span class="status-line"><p>Tomorrow</p></span>`;
   } else {
-    const day = startDatetime.getDate();
-    const month = startDatetime.toLocaleDateString('en-US', { month: 'long' });
     const matchTime = new Intl.DateTimeFormat('en-GB', {
       hour: '2-digit',
       minute: '2-digit',
       hour12: false,
     }).format(startDatetime);
 
-    matchStatus = `<span class="status-line start-time">${matchTime}</span><span class="status-line"><p>${day} ${month}</p></span>`;
+    matchStatus = `<span class="status-line start-time">${matchTime}</span>`;
   }
 
   // Skip rendering if essential attributes are missing
@@ -248,6 +226,7 @@ render() {
 
   this.setStyle();
 }
+
 
 
   getDaySuffix(day) {
