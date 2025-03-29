@@ -183,7 +183,7 @@ if (isInPlay) {
   matchStatus = `<span class="status-line start-time">In Play</span>`;
 } else if (matchDate === today) {
   const matchTime = kickoffDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  matchStatus = `<span class="status-line start-time">${matchTime}</span><span class="status-line">Today</span>`;
+  matchStatus = `<span class="status-line start-time">${matchTime}</span><span class="status-line"><p>Today</p></span>`;
 } else if (matchDate === tomorrow) {
   const matchTime = kickoffDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   matchStatus = `<span class="status-line start-time">${matchTime}</span><span class="status-line"><p>Tomorrow</p></span>`;
