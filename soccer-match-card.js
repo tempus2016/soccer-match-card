@@ -7,7 +7,6 @@ class SoccerMatchCard extends HTMLElement {
     this.previousHomeTeam = '';
     this.previousAwayTeam = '';
     this.previousStateObj = null;
-    this.liveScore = '';
   }
 
   setConfig(config) {
@@ -128,31 +127,7 @@ class SoccerMatchCard extends HTMLElement {
     }
   }
 
-  async fetchLiveScore(homeTeam, awayTeam) {
-    const apiKey = '3';
-    const url = `https://www.thesportsdb.com/api/v1/json/${apiKey}/searchevents.php?e=${homeTeam}_vs_${awayTeam}`;
-
-    try {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error('Failed to fetch live score');
-
-      const data = await response.json();
-      const events = data.events || [];
-      if (events.length === 0) return null;
-
-      const event = events[0];
-      if (event.strStatus === 'In-Progress') {
-        return `${event.intHomeScore} - ${event.intAwayScore}`;
-      }
-
-      return null;
-    } catch (error) {
-      console.error('Error fetching live score:', error);
-      return null;
-    }
-  }
-
-  async render() {
+  render() {
     if (!this._hass || !this.config) {
       this.shadowRoot.innerHTML = `
         <ha-card>
@@ -189,11 +164,6 @@ class SoccerMatchCard extends HTMLElement {
     // Check if the match is "In Play"
     const isInPlay = now >= startDatetime && now <= endDatetime;
 
-    // Get live score if match is in play
-    if (isInPlay) {
-      this.liveScore = await this.fetchLiveScore(homeTeam, awayTeam);
-    }
-
     // Determine if the match is today or tomorrow
     const matchDate = startDatetime.toLocaleDateString();
     const today = new Date().toLocaleDateString();
@@ -201,18 +171,33 @@ class SoccerMatchCard extends HTMLElement {
 
     let matchStatus = '';
 
-    if (isInPlay && this.liveScore) {
-      matchStatus = `<span class="status-line start-time">${this.liveScore}</span>`; // Show live score
+    if (isInPlay) {
+      // Use Intl.DateTimeFormat to format the match time
+      const matchTime = new Intl.DateTimeFormat('en-GB', {
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(startDatetime);
+
+      matchStatus = `<span class="status-line start-time">${matchTime}</span>`;
     } else if (matchDate === today) {
-      const matchTime = startDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const matchTime = new Intl.DateTimeFormat('en-GB', {
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(startDatetime);
       matchStatus = `<span class="status-line start-time">${matchTime}</span><span class="status-line"><p>Today</p></span>`;
     } else if (matchDate === tomorrow) {
-      const matchTime = startDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const matchTime = new Intl.DateTimeFormat('en-GB', {
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(startDatetime);
       matchStatus = `<span class="status-line start-time">${matchTime}</span><span class="status-line"><p>Tomorrow</p></span>`;
     } else {
       const day = startDatetime.getDate();
       const month = startDatetime.toLocaleDateString('en-US', { month: 'long' });
-      const matchTime = startDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const matchTime = new Intl.DateTimeFormat('en-GB', {
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(startDatetime);
 
       matchStatus = `<span class="status-line start-time">${matchTime}</span><span class="status-line"><p>${day} ${month}</p></span>`;
     }
