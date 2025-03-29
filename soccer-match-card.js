@@ -75,9 +75,10 @@ class SoccerMatchCard extends HTMLElement {
 async fetchLiveScore(homeTeam, awayTeam) {
   // Format the teams into the required format (homeTeam_vs_awayTeam)
   const matchString = `${homeTeam.toLowerCase().replace(/ /g, '_')}_vs_${awayTeam.toLowerCase().replace(/ /g, '_')}`;
+  console.error(`${matchString}`);
   const apiKey = '3';
   const url = `https://www.thesportsdb.com/api/v1/json/${apiKey}/searchevents.php?e=${matchString}`;
-  console.log(`${url}`);
+  console.error(`${url}`);
 
   try {
     const response = await fetch(url);
