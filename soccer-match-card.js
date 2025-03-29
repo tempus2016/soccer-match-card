@@ -61,7 +61,8 @@ class SoccerMatchCard extends HTMLElement {
       prev.state !== curr.state ||
       prev.attributes.home_team !== curr.attributes.home_team ||
       prev.attributes.away_team !== curr.attributes.away_team ||
-      prev.attributes.start_time !== curr.attributes.start_time ||
+      prev.attributes.starttime_datetime !== curr.attributes.starttime_datetime ||
+      prev.attributes.endtime_datetime !== curr.attributes.endtime_datetime ||
       prev.attributes.location !== curr.attributes.location ||
       prev.attributes.league !== curr.attributes.league;
 
@@ -85,20 +86,16 @@ class SoccerMatchCard extends HTMLElement {
   }
 
   async fetchTeamLogo(teamName) {
-    // Check if the logo exists locally
     const localLogoPath = `/local/teamlogos/${teamName.toLowerCase().replace(/ /g, '_')}.png`;
     try {
       const response = await fetch(localLogoPath);
       if (response.ok) {
-        // Logo found locally
         return localLogoPath;
       } else {
         throw new Error('Logo not found locally');
       }
     } catch (error) {
       console.log('Logo not found locally, fetching from API...');
-
-      // Logo doesn't exist locally, fetch from API
       const apiKey = '3';
       const url = `https://www.thesportsdb.com/api/v1/json/${apiKey}/searchteams.php?t=${encodeURIComponent(teamName)}`;
 
@@ -111,8 +108,6 @@ class SoccerMatchCard extends HTMLElement {
 
         if (team && team.strBadge) {
           const logoUrl = team.strBadge;
-
-          // Use Home Assistant's downloader service to store the logo locally
           const logoFilename = `${teamName.toLowerCase().replace(/ /g, '_')}.png`;
           await this._hass.callService('downloader', 'download_file', {
             overwrite: true,
@@ -120,15 +115,14 @@ class SoccerMatchCard extends HTMLElement {
             filename: `${logoFilename}`,
           });
 
-          // Return the local path to the logo
           return `/local/teamlogos/${logoFilename}`;
         } else {
           console.warn(`No logo found for team: ${teamName}`);
-          return '/local/teamlogos/no_image_available.png'; // Default logo if not found
+          return '/local/teamlogos/no_image_available.png';
         }
       } catch (error) {
         console.error(`Error fetching logo for ${teamName}:`, error);
-        return '/local/teamlogos/no_image_available.png'; // Default logo on error
+        return '/local/teamlogos/no_image_available.png';
       }
     }
   }
@@ -162,48 +156,47 @@ class SoccerMatchCard extends HTMLElement {
     const homeTeam = this.isValidAttribute(attributes.home_team) ? attributes.home_team : '';
     const awayTeam = this.isValidAttribute(attributes.away_team) ? attributes.away_team : '';
     const location = this.isValidAttribute(attributes.location) ? attributes.location : '';
-    const kickoffDatetime = new Date(attributes.kickoff_datetime);
-    const startTime = new Date(attributes.start_time);
-    const endTime = new Date(attributes.end_time);
+    const startDatetime = new Date(attributes.starttime_datetime);
+    const endDatetime = new Date(attributes.endtime_datetime);
 
     const now = new Date();
 
-// Check if the match is "In Play"
-const isInPlay = now >= startTime && now <= endTime;
+    // Check if the match is "In Play"
+    const isInPlay = now >= startDatetime && now <= endDatetime;
 
-// Determine if the match is today or tomorrow
-const matchDate = kickoffDatetime.toLocaleDateString();
-const today = new Date().toLocaleDateString();
-const tomorrow = new Date(Date.now() + 86400000).toLocaleDateString(); // 24 hours from now
+    // Determine if the match is today or tomorrow
+    const matchDate = startDatetime.toLocaleDateString();
+    const today = new Date().toLocaleDateString();
+    const tomorrow = new Date(Date.now() + 86400000).toLocaleDateString(); // 24 hours from now
 
-let matchStatus = '';
+    let matchStatus = '';
 
-if (isInPlay) {
-  const matchTime = kickoffDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  matchStatus = `<span class="status-line start-time">In Play</span>`;
-} else if (matchDate === today) {
-  const matchTime = kickoffDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  matchStatus = `<span class="status-line start-time">${matchTime}</span><span class="status-line"><p>Today</p></span>`;
-} else if (matchDate === tomorrow) {
-  const matchTime = kickoffDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  matchStatus = `<span class="status-line start-time">${matchTime}</span><span class="status-line"><p>Tomorrow</p></span>`;
-} else {
-  const day = kickoffDatetime.getDate();
-  const month = kickoffDatetime.toLocaleDateString('en-US', { month: 'long' }); // Get full month name
-  const matchTime = kickoffDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (isInPlay) {
+      const matchTime = startDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      matchStatus = `<span class="status-line start-time">In Play</span>`;
+    } else if (matchDate === today) {
+      const matchTime = startDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      matchStatus = `<span class="status-line start-time">${matchTime}</span><span class="status-line"><p>Today</p></span>`;
+    } else if (matchDate === tomorrow) {
+      const matchTime = startDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      matchStatus = `<span class="status-line start-time">${matchTime}</span><span class="status-line"><p>Tomorrow</p></span>`;
+    } else {
+      const day = startDatetime.getDate();
+      const month = startDatetime.toLocaleDateString('en-US', { month: 'long' });
+      const matchTime = startDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-  matchStatus = `<span class="status-line start-time">${matchTime}</span><span class="status-line"><p>${day} ${month}</p></span>`;
-}
+      matchStatus = `<span class="status-line start-time">${matchTime}</span><span class="status-line"><p>${day} ${month}</p></span>`;
+    }
 
-// Skip rendering if essential attributes are missing
-if (!homeTeam || !awayTeam || !matchStatus || !league) {
-  this.shadowRoot.innerHTML = `
-    <ha-card>
-      <div style="color:white; padding: 16px;">❌ Missing match information</div>
-    </ha-card>
-  `;
-  return;
-}
+    // Skip rendering if essential attributes are missing
+    if (!homeTeam || !awayTeam || !matchStatus || !league) {
+      this.shadowRoot.innerHTML = `
+        <ha-card>
+          <div style="color:white; padding: 16px;">❌ Missing match information</div>
+        </ha-card>
+      `;
+      return;
+    }
 
     const homeTeamLogo = this.teamLogos[homeTeam] || '/local/teamlogos/no_image_available.png';
     const awayTeamLogo = this.teamLogos[awayTeam] || '/local/teamlogos/no_image_available.png';
@@ -236,131 +229,120 @@ if (!homeTeam || !awayTeam || !matchStatus || !league) {
     this.setStyle();
   }
 
-// Helper function to get the correct day suffix
-getDaySuffix(day) {
-  if (day === 11 || day === 12 || day === 13) {
-    return 'th'; // Special case for 11th, 12th, and 13th
+  getDaySuffix(day) {
+    if (day === 11 || day === 12 || day === 13) {
+      return 'th';
+    }
+
+    switch (day % 10) {
+      case 1: return 'st';
+      case 2: return 'nd';
+      case 3: return 'rd';
+      default: return 'th';
+    }
   }
-  
-  // Determine the correct suffix based on the day
-  switch (day % 10) {
-    case 1: return 'st';
-    case 2: return 'nd';
-    case 3: return 'rd';
-    default: return 'th';
+
+  isValidAttribute(attribute) {
+    return attribute && attribute.toLowerCase() !== 'unknown' && attribute !== '';
   }
-}
 
-// Helper function to check if an attribute is valid (not empty or "Unknown")
-isValidAttribute(attribute) {
-  return attribute && attribute.toLowerCase() !== 'unknown' && attribute !== '';
-}
+  setStyle() {
+    const style = document.createElement('style');
+    style.textContent = `
+      ha-card {
+        border-radius: 12px;
+        overflow: hidden;
+        background: linear-gradient(to bottom, #002147 0%, #004080 100%);
+        color: #fff;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      }
+      
+      .match-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 16px;
+      }
 
-setStyle() {
-  const style = document.createElement('style');
-  style.textContent = `
-    ha-card {
-      border-radius: 12px;
-      overflow: hidden;
-      background: linear-gradient(to bottom, #002147 0%, #004080 100%);
-      color: #fff;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    }
+      .header {
+        width: 100%;
+        text-align: center;
+        background-color: #d71920;
+        color: #fff;
+        font-size: 18px;
+        font-weight: bold;
+        padding: 8px 0;
+        letter-spacing: 1px;
+      }
 
-    .match-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 16px;
-    }
+      .teams-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        margin: 16px 0;
+      }
 
-    .header {
-      width: 100%;
-      text-align: center;
-      background-color: #d71920;
-      color: #fff;
-      font-size: 18px;
-      font-weight: bold;
-      padding: 8px 0;
-      letter-spacing: 1px;
-    }
+      .team {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex: 1;
+      }
 
-    .teams-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      width: 100%;
-      margin: 16px 0;
-    }
+      .team-logo {
+        width: 80px;
+        height: 80px;
+        margin-bottom: 8px;
+        object-fit: contain;
+      }
 
-    .team {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      flex: 1;
-    }
+      .team-name {
+        font-size: 20px;
+        text-align: center;
+      }
 
-    .team-logo {
-      width: 80px;
-      height: 80px;
-      margin-bottom: 8px;
-      object-fit: contain;
-    }
+      .vs-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        flex: 0.6;
+        color: #fff;
+      }
 
-    .team-name {
-      font-size: 20px;
-      // font-weight: 600;
-      text-align: center;
-    }
+      .kickoff-time {
+        font-size: 14px;
+        text-align: center;
+      }
 
-    .vs-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      flex: 0.6;
-      color: #fff;
-    }
+      .status-line {
+        display: block;
+        text-align: center;
+        font-size: 14px;
+        font-weight: bold;
+      }
 
-    .vs {
-      font-size: 20px;
-      font-weight: bold;
-      margin-bottom: 8px;
-    }
+      .status-line p {
+        font-size: 16px;
+        line-height: 0px;
+        color: #ccc;
+      }
 
-    .kickoff-time {
-      font-size: 14px;
-      text-align: center;
-    }
+      .start-time {
+        font-size: 30px;
+        height: 22px;
+      }
 
-    .status-line {
-      display: block;
-      text-align: center;
-      font-size: 14px;
-      font-weight: bold;
-    }
-
-    .status-line p {
-      font-size: 16px;
-      line-height: 0px;
-      color: #ccc;
-    }
-
-    .start-time {
-      font-size: 30px;
-      height: 22px;
-    }
-
-    .location {
-      // margin-top: 16px;
-      font-size: 14px;
-      color: #ddd;
-      text-align: center;
-    }
-  `;
-  this.shadowRoot.appendChild(style);
-}
+      .location {
+        font-size: 14px;
+        color: #ddd;
+        text-align: center;
+      }
+    `;
+    this.shadowRoot.appendChild(style);
+  }
 
   static getConfigElement() {
     return document.createElement('soccer-match-card-editor');
@@ -372,66 +354,3 @@ setStyle() {
 }
 
 customElements.define('soccer-match-card', SoccerMatchCard);
-
-// Optional: Basic editor if you're adding this to HACS with editable UI
-class SoccerMatchCardEditor extends HTMLElement {
-  constructor() {
-    super();
-    this.attachShadow({ mode: 'open' });
-  }
-
-  setConfig(config) {
-    this._config = config || {};
-    this.render();
-  }
-
-  set hass(hass) {
-    this._hass = hass;
-    this.render();
-  }
-
-  render() {
-    if (!this._hass) return;
-
-    const entity = this._config?.entity || '';
-
-    this.shadowRoot.innerHTML = `
-      <style>
-        .form { padding: 16px; }
-      </style>
-      <div class="form">
-        <ha-entity-picker
-          label="Select Sensor Entity"
-          .hass=${this._hass}
-          .value=${entity}
-          .configValue=${"entity"}
-          include-domains="sensor"
-        ></ha-entity-picker>
-      </div>
-    `;
-
-    this.shadowRoot
-      .querySelector('ha-entity-picker')
-      ?.addEventListener('value-changed', (e) => this._valueChanged(e));
-  }
-
-  _valueChanged(ev) {
-    const target = ev.target;
-    if (!this._config || !target) return;
-
-    const value = target.value;
-
-    if (this._config[target.configValue] === value) return;
-
-    this._config = {
-      ...this._config,
-      [target.configValue]: value,
-    };
-
-    this.dispatchEvent(new CustomEvent('config-changed', {
-      detail: { config: this._config },
-    }));
-  }
-}
-
-customElements.define('soccer-match-card-editor', SoccerMatchCardEditor);
