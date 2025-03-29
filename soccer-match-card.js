@@ -157,7 +157,7 @@ render() {
   const homeTeam = this.isValidAttribute(attributes.home_team) ? attributes.home_team : '';
   const awayTeam = this.isValidAttribute(attributes.away_team) ? attributes.away_team : '';
   const location = this.isValidAttribute(attributes.location) ? attributes.location : '';
-  const startDatetime = new Date(attributes.starttime_datetime);
+  const startDatetime = new Date(attributes.starttime_datetime); // This is UTC time
   const endDatetime = new Date(attributes.endtime_datetime);
 
   const now = new Date();
@@ -172,12 +172,12 @@ render() {
 
   let matchStatus = '';
 
+  // Extract time from the UTC startDatetime (do not adjust to local timezone)
   if (isInPlay) {
-    // Use Intl.DateTimeFormat to format the match time and automatically handle timezone
     const matchTime = new Intl.DateTimeFormat('en-GB', {
       hour: '2-digit',
       minute: '2-digit',
-      hour12: false, // Ensure 24-hour format
+      hour12: false, // 24-hour format
     }).format(startDatetime);
 
     matchStatus = `<span class="status-line start-time">${matchTime}</span>`;
@@ -185,14 +185,15 @@ render() {
     const matchTime = new Intl.DateTimeFormat('en-GB', {
       hour: '2-digit',
       minute: '2-digit',
-      hour12: false, // Ensure 24-hour format
+      hour12: false,
     }).format(startDatetime);
+
     matchStatus = `<span class="status-line start-time">${matchTime}</span><span class="status-line"><p>Today</p></span>`;
   } else if (matchDate === tomorrow) {
     const matchTime = new Intl.DateTimeFormat('en-GB', {
       hour: '2-digit',
       minute: '2-digit',
-      hour12: false, // Ensure 24-hour format
+      hour12: false,
     }).format(startDatetime);
     matchStatus = `<span class="status-line start-time">${matchTime}</span><span class="status-line"><p>Tomorrow</p></span>`;
   } else {
@@ -201,7 +202,7 @@ render() {
     const matchTime = new Intl.DateTimeFormat('en-GB', {
       hour: '2-digit',
       minute: '2-digit',
-      hour12: false, // Ensure 24-hour format
+      hour12: false,
     }).format(startDatetime);
 
     matchStatus = `<span class="status-line start-time">${matchTime}</span><span class="status-line"><p>${day} ${month}</p></span>`;
@@ -247,6 +248,7 @@ render() {
 
   this.setStyle();
 }
+
 
   getDaySuffix(day) {
     if (day === 11 || day === 12 || day === 13) {
