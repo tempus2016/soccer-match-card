@@ -88,7 +88,7 @@ class SoccerMatchCard extends HTMLElement {
           await this._hass.callService('downloader', 'download_file', {
             overwrite: true,
             url: badgeUrl,
-            filename: `teamlogos/${filename}`,
+            filename: `${filename}`,
           });
           return `/local/teamlogos/${filename}`;
         }
