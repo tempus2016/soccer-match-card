@@ -153,7 +153,7 @@ render() {
   const friendlyName = stateObj.attributes.friendly_name || 'Team';
   
   // Extract team name from friendly_name (remove "Match Info" if present)
-  const teamName = friendlyName.replace(' Match Info', '').trim();
+  const teamName = friendlyName.replace(' FC Match Info', '').trim();
   
   // Check if we have a valid upcoming match
   const hasValidMatch = this.isValidAttribute(attributes.home_team) && 
