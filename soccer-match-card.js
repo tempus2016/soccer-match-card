@@ -3,9 +3,8 @@ class SoccerMatchCard extends HTMLElement {
     super();
     this.attachShadow({ mode: 'open' });
     this.teamLogos = {};
-    this.logosLoaded = false;
-    this.previousHomeTeam = '';
-    this.previousAwayTeam = '';
+    this.loadingLogos = new Set();
+    this.failedLogos = new Set();
     this.previousStateObj = null;
   }
 
@@ -22,19 +21,11 @@ class SoccerMatchCard extends HTMLElement {
     if (!this.config) return;
 
     const entityId = this.config.entity;
-    if (!entityId) return;
-
     const stateObj = this._hass.states[entityId];
-    if (!stateObj) return;
+    if (!stateObj || !this.hasEntityChanged(stateObj)) return;
 
-    const hasChanged = this.hasEntityChanged(stateObj);
-    if (!hasChanged) return;
-
-    const attributes = stateObj.attributes;
-    const friendlyName = stateObj.attributes.friendly_name || 'Team';
-    const teamName = friendlyName.replace(' FC Match Info', '').trim();
-
-    if (!this.logosLoaded || !this.teamLogos[teamName]) {
+    const teamName = this.extractTeamName(stateObj.attributes.friendly_name);
+    if (!this.teamLogos[teamName] && !this.loadingLogos.has(teamName) && !this.failedLogos.has(teamName)) {
       this.loadTeamLogo(teamName);
     }
 
@@ -42,105 +33,126 @@ class SoccerMatchCard extends HTMLElement {
   }
 
   hasEntityChanged(newState) {
-    if (!this.previousStateObj) {
-      this.previousStateObj = newState;
-      return true;
-    }
-
     const prev = this.previousStateObj;
-    const curr = newState;
+    this.previousStateObj = newState;
 
-    const changed =
-      prev.state !== curr.state ||
-      prev.attributes.friendly_name !== curr.attributes.friendly_name ||
-      (prev.attributes.home_team !== curr.attributes.home_team) ||
-      (prev.attributes.away_team !== curr.attributes.away_team) ||
-      (prev.attributes.starttime_datetime !== curr.attributes.starttime_datetime);
+    if (!prev) return true;
 
-    if (changed) {
-      this.previousStateObj = curr;
-    }
+    const attrsChanged = ['home_team', 'away_team', 'starttime_datetime'].some(
+      key => prev.attributes[key] !== newState.attributes[key]
+    );
 
-    return changed;
+    return prev.state !== newState.state ||
+           prev.attributes.friendly_name !== newState.attributes.friendly_name ||
+           attrsChanged;
+  }
+
+  extractTeamName(friendlyName = '') {
+    return friendlyName.replace(' FC Match Info', '').trim();
   }
 
   async loadTeamLogo(teamName) {
+    this.loadingLogos.add(teamName);
     const logo = await this.fetchTeamLogo(teamName);
-    this.teamLogos[teamName] = logo;
-    this.logosLoaded = true;
+    this.loadingLogos.delete(teamName);
+
+    if (logo) {
+      this.teamLogos[teamName] = logo;
+    } else {
+      this.failedLogos.add(teamName);
+    }
+
     this.render();
+    setTimeout(() => this.refreshLogos(), 100);
   }
 
   async fetchTeamLogo(teamName) {
-    const localLogoPath = `/local/teamlogos/${teamName.toLowerCase().replace(/ /g, '_')}.png`;
+    const logoPath = this.getLocalLogoPath(teamName);
+    const cacheBuster = Date.now();
+
     try {
-      const response = await fetch(localLogoPath);
-      if (response.ok) {
-        return localLogoPath;
-      }
-      throw new Error('Logo not found locally');
-    } catch (error) {
-      console.log('Logo not found locally, fetching from API...');
-      const apiKey = '3'; // Free tier API key
-      const url = `https://www.thesportsdb.com/api/v1/json/${apiKey}/searchteams.php?t=${encodeURIComponent(teamName)}`;
-
+      const response = await fetch(`${logoPath}?ts=${cacheBuster}`);
+      if (response.ok) return logoPath;
+      throw new Error('Local logo missing');
+    } catch {
       try {
+        const apiKey = '3';
+        const url = `https://www.thesportsdb.com/api/v1/json/${apiKey}/searchteams.php?t=${encodeURIComponent(teamName)}`;
         const response = await fetch(url);
-        if (!response.ok) throw new Error(`Failed to fetch team info for ${teamName}`);
-
         const data = await response.json();
-        const team = data.teams ? data.teams[0] : null;
+        const team = data.teams?.[0];
 
-        if (team && team.strBadge) {
-          return team.strBadge;
+        if (team?.strBadge) {
+          const badgeUrl = team.strBadge;
+          const filename = `${teamName.toLowerCase().replace(/ /g, '_')}.png`;
+          await this._hass.callService('downloader', 'download_file', {
+            overwrite: true,
+            url: badgeUrl,
+            filename: `teamlogos/${filename}`,
+          });
+          return `/local/teamlogos/${filename}`;
         }
-        return '/local/teamlogos/no_image_available.png';
       } catch (error) {
-        console.error(`Error fetching logo for ${teamName}:`, error);
-        return '/local/teamlogos/no_image_available.png';
+        console.error(`Failed to fetch logo for ${teamName}:`, error);
       }
     }
+
+    return '/local/teamlogos/no_image_available.png';
   }
 
-  isValidAttribute(attribute) {
-    return attribute && attribute.toLowerCase() !== 'unknown' && attribute !== '';
+  getLocalLogoPath(teamName) {
+    return `/local/teamlogos/${teamName.toLowerCase().replace(/ /g, '_')}.png`;
+  }
+
+  refreshLogos() {
+    const images = this.shadowRoot.querySelectorAll('img.team-logo');
+    images.forEach(img => {
+      const baseSrc = img.src.split('?')[0];
+      img.src = `${baseSrc}?ts=${Date.now()}`;
+    });
+  }
+
+  isValidAttribute(attr) {
+    return attr && attr.toLowerCase() !== 'unknown' && attr !== '';
   }
 
   render() {
     if (!this._hass || !this.config) {
-      this.shadowRoot.innerHTML = `
-        <ha-card>
-          <div style="color:white; padding: 16px;">❌ Waiting for hass/config...</div>
-        </ha-card>
-      `;
+      this.shadowRoot.innerHTML = `<ha-card><div style="color:white; padding: 16px;">❌ Waiting for hass/config...</div></ha-card>`;
       return;
     }
 
-    const entityId = this.config.entity;
-    const stateObj = this._hass.states[entityId];
-
+    const stateObj = this._hass.states[this.config.entity];
     if (!stateObj) {
-      this.shadowRoot.innerHTML = `
-        <ha-card>
-          <div style="color:white; padding: 16px;">❌ Entity not found: ${entityId}</div>
-        </ha-card>
-      `;
+      this.shadowRoot.innerHTML = `<ha-card><div style="color:white; padding: 16px;">❌ Entity not found: ${this.config.entity}</div></ha-card>`;
       return;
     }
 
-    const attributes = stateObj.attributes;
-    const friendlyName = stateObj.attributes.friendly_name || 'Team';
-    const teamName = friendlyName.replace(' FC Match Info', '').trim();
-    const teamLogo = this.teamLogos[teamName] || '/local/teamlogos/no_image_available.png';
+    const html = this.buildTemplate(stateObj);
+    this.shadowRoot.innerHTML = html;
+    this.applyStyle(this.getTemplateType(stateObj));
+  }
 
-    // Check for valid match data
-    const hasValidMatch = this.isValidAttribute(attributes.home_team) && 
-                         this.isValidAttribute(attributes.away_team) &&
-                         attributes.starttime_datetime && 
-                         !isNaN(new Date(attributes.starttime_datetime).getTime());
+  getTemplateType(stateObj) {
+    const attr = stateObj.attributes;
+    return this.isValidAttribute(attr.home_team) &&
+           this.isValidAttribute(attr.away_team) &&
+           attr.starttime_datetime &&
+           !isNaN(new Date(attr.starttime_datetime).getTime())
+      ? 'match'
+      : 'no-match';
+  }
 
-    if (!hasValidMatch) {
-      this.shadowRoot.innerHTML = `
+  buildTemplate(stateObj) {
+    const attr = stateObj.attributes;
+    const now = new Date();
+    const timestamp = Date.now();
+    const friendlyName = attr.friendly_name || 'Team';
+    const teamName = this.extractTeamName(friendlyName);
+    const teamLogo = `${(this.teamLogos[teamName] || '/local/teamlogos/no_image_available.png')}?ts=${timestamp}`;
+
+    if (this.getTemplateType(stateObj) === 'no-match') {
+      return `
         <ha-card>
           <div class="no-match-container">
             <div class="team-logo-container">
@@ -151,81 +163,77 @@ class SoccerMatchCard extends HTMLElement {
           </div>
         </ha-card>
       `;
-      this.setNoMatchStyle();
-      return;
     }
 
-    // Regular match display
-    const homeTeam = attributes.home_team;
-    const awayTeam = attributes.away_team;
-    const homeTeamLogo = this.teamLogos[homeTeam] || '/local/teamlogos/no_image_available.png';
-    const awayTeamLogo = this.teamLogos[awayTeam] || '/local/teamlogos/no_image_available.png';
-    const league = attributes.league || '';
-    const location = attributes.location || '';
-    const startDatetime = new Date(attributes.starttime_datetime);
-    const endDatetime = new Date(attributes.endtime_datetime);
-    const now = new Date();
+    const home = attr.home_team;
+    const away = attr.away_team;
+    const league = attr.league || '';
+    const location = attr.location || '';
+    const start = new Date(attr.starttime_datetime);
+    const end = new Date(attr.endtime_datetime);
+    const homeLogo = `${(this.teamLogos[home] || '/local/teamlogos/no_image_available.png')}?ts=${timestamp}`;
+    const awayLogo = `${(this.teamLogos[away] || '/local/teamlogos/no_image_available.png')}?ts=${timestamp}`;
 
-    // Match status calculation
-    const isInPlay = now >= startDatetime && now <= endDatetime;
-    const matchDate = startDatetime.toLocaleDateString();
-    const today = new Date().toLocaleDateString();
-    const tomorrow = new Date(Date.now() + 86400000).toLocaleDateString();
+    const isInPlay = now >= start && now <= end;
+    const matchDate = start.toLocaleDateString();
+    const today = now.toLocaleDateString();
+    const tomorrow = new Date(now.getTime() + 86400000).toLocaleDateString();
 
-    let matchStatus = '';
+    let matchStatus;
+    const matchTime = start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     if (isInPlay) {
       matchStatus = `<span class="status-line start-time">In Play</span>`;
     } else if (matchDate === today) {
-      const matchTime = startDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       matchStatus = `<span class="status-line start-time">${matchTime}</span><span class="status-line"><p>Today</p></span>`;
     } else if (matchDate === tomorrow) {
-      const matchTime = startDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       matchStatus = `<span class="status-line start-time">${matchTime}</span><span class="status-line"><p>Tomorrow</p></span>`;
     } else {
-      const day = startDatetime.getDate();
-      const month = startDatetime.toLocaleDateString('en-US', { month: 'long' });
-      const matchTime = startDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const day = start.getDate();
+      const month = start.toLocaleDateString('en-US', { month: 'long' });
       matchStatus = `<span class="status-line start-time">${matchTime}</span><span class="status-line"><p>${day} ${month}</p></span>`;
     }
 
-    this.shadowRoot.innerHTML = `
+    return `
       <ha-card>
         <div class="match-container">
           <div class="header">${league}</div>
           <div class="teams-row">
             <div class="team">
-              <img src="${homeTeamLogo}" alt="${homeTeam} Logo" class="team-logo">
-              <div class="team-name">${homeTeam}</div>
+              <img src="${homeLogo}" alt="${home} Logo" class="team-logo">
+              <div class="team-name">${home}</div>
             </div>
             <div class="vs-container">
               <div class="kickoff-time">${matchStatus}</div>
             </div>
             <div class="team">
-              <img src="${awayTeamLogo}" alt="${awayTeam} Logo" class="team-logo">
-              <div class="team-name">${awayTeam}</div>
+              <img src="${awayLogo}" alt="${away} Logo" class="team-logo">
+              <div class="team-name">${away}</div>
             </div>
           </div>
           <div class="location">${location}</div>
         </div>
       </ha-card>
     `;
-    this.setMatchStyle();
   }
 
-  setNoMatchStyle() {
+  applyStyle(type = 'match') {
     const style = document.createElement('style');
-    style.textContent = `
+    style.textContent = this.getStyles(type);
+    this.shadowRoot.appendChild(style);
+  }
+
+  getStyles(type) {
+    const common = `
       ha-card {
         border-radius: 12px;
         background: linear-gradient(to bottom, #002147 0%, #004080 100%);
         color: #fff;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 200px;
       }
+    `;
+
+    const noMatch = `
       .no-match-container {
         display: flex;
         flex-direction: column;
@@ -233,6 +241,8 @@ class SoccerMatchCard extends HTMLElement {
         width: 100%;
         padding: 20px;
         text-align: center;
+        height: 200px;
+        justify-content: center;
       }
       .team-logo-container {
         display: flex;
@@ -253,23 +263,10 @@ class SoccerMatchCard extends HTMLElement {
       .no-matches-message {
         font-size: 18px;
         color: #ccc;
-        margin-top: 10px;
       }
     `;
-    this.shadowRoot.appendChild(style);
-  }
 
-  setMatchStyle() {
-    const style = document.createElement('style');
-    style.textContent = `
-      ha-card {
-        border-radius: 12px;
-        overflow: hidden;
-        background: linear-gradient(to bottom, #002147 0%, #004080 100%);
-        color: #fff;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      }
+    const match = `
       .match-container {
         display: flex;
         flex-direction: column;
@@ -343,7 +340,8 @@ class SoccerMatchCard extends HTMLElement {
         text-align: center;
       }
     `;
-    this.shadowRoot.appendChild(style);
+
+    return common + (type === 'match' ? match : noMatch);
   }
 }
 
