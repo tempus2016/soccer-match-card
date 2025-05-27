@@ -130,7 +130,7 @@ class SoccerMatchCard extends HTMLElement {
 
     const attributes = stateObj.attributes;
     const friendlyName = stateObj.attributes.friendly_name || 'Team';
-    const teamName = friendlyName.replace(' Match Info', '').trim();
+    const teamName = friendlyName.replace(' FC Match Info', '').trim();
     const teamLogo = this.teamLogos[teamName] || '/local/teamlogos/no_image_available.png';
 
     // Check for valid match data
