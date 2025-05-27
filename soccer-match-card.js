@@ -238,7 +238,6 @@ class SoccerMatchCard extends HTMLElement {
         flex-direction: column;
         align-items: center;
         width: 100%;
-        padding: 20px;
         text-align: center;
         height: 200px;
         justify-content: center;
