@@ -32,7 +32,7 @@ class SoccerMatchCard extends HTMLElement {
 
     const attributes = stateObj.attributes;
     const friendlyName = stateObj.attributes.friendly_name || 'Team';
-    const teamName = friendlyName.replace(' Match Info', '').trim();
+    const teamName = friendlyName.replace(' FC Match Info', '').trim();
 
     if (!this.logosLoaded || !this.teamLogos[teamName]) {
       this.loadTeamLogo(teamName);
