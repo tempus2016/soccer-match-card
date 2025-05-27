@@ -34,12 +34,34 @@ class SoccerMatchCard extends HTMLElement {
     const friendlyName = stateObj.attributes.friendly_name || 'Team';
     const teamName = friendlyName.replace(' Match Info', '').trim();
 
-    // Load team logo even if no match exists
     if (!this.logosLoaded || !this.teamLogos[teamName]) {
       this.loadTeamLogo(teamName);
     }
 
     this.render();
+  }
+
+  hasEntityChanged(newState) {
+    if (!this.previousStateObj) {
+      this.previousStateObj = newState;
+      return true;
+    }
+
+    const prev = this.previousStateObj;
+    const curr = newState;
+
+    const changed =
+      prev.state !== curr.state ||
+      prev.attributes.friendly_name !== curr.attributes.friendly_name ||
+      (prev.attributes.home_team !== curr.attributes.home_team) ||
+      (prev.attributes.away_team !== curr.attributes.away_team) ||
+      (prev.attributes.starttime_datetime !== curr.attributes.starttime_datetime);
+
+    if (changed) {
+      this.previousStateObj = curr;
+    }
+
+    return changed;
   }
 
   async loadTeamLogo(teamName) {
@@ -49,7 +71,40 @@ class SoccerMatchCard extends HTMLElement {
     this.render();
   }
 
-  // ... [keep all your existing helper methods like fetchTeamLogo, hasEntityChanged, isValidAttribute]
+  async fetchTeamLogo(teamName) {
+    const localLogoPath = `/local/teamlogos/${teamName.toLowerCase().replace(/ /g, '_')}.png`;
+    try {
+      const response = await fetch(localLogoPath);
+      if (response.ok) {
+        return localLogoPath;
+      }
+      throw new Error('Logo not found locally');
+    } catch (error) {
+      console.log('Logo not found locally, fetching from API...');
+      const apiKey = '3'; // Free tier API key
+      const url = `https://www.thesportsdb.com/api/v1/json/${apiKey}/searchteams.php?t=${encodeURIComponent(teamName)}`;
+
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`Failed to fetch team info for ${teamName}`);
+
+        const data = await response.json();
+        const team = data.teams ? data.teams[0] : null;
+
+        if (team && team.strBadge) {
+          return team.strBadge;
+        }
+        return '/local/teamlogos/no_image_available.png';
+      } catch (error) {
+        console.error(`Error fetching logo for ${teamName}:`, error);
+        return '/local/teamlogos/no_image_available.png';
+      }
+    }
+  }
+
+  isValidAttribute(attribute) {
+    return attribute && attribute.toLowerCase() !== 'unknown' && attribute !== '';
+  }
 
   render() {
     if (!this._hass || !this.config) {
@@ -111,9 +166,27 @@ class SoccerMatchCard extends HTMLElement {
     const endDatetime = new Date(attributes.endtime_datetime);
     const now = new Date();
 
-    // [Keep your existing match status calculation code...]
+    // Match status calculation
+    const isInPlay = now >= startDatetime && now <= endDatetime;
+    const matchDate = startDatetime.toLocaleDateString();
+    const today = new Date().toLocaleDateString();
+    const tomorrow = new Date(Date.now() + 86400000).toLocaleDateString();
+
     let matchStatus = '';
-    // ... [your existing match time display logic]
+    if (isInPlay) {
+      matchStatus = `<span class="status-line start-time">In Play</span>`;
+    } else if (matchDate === today) {
+      const matchTime = startDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      matchStatus = `<span class="status-line start-time">${matchTime}</span><span class="status-line"><p>Today</p></span>`;
+    } else if (matchDate === tomorrow) {
+      const matchTime = startDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      matchStatus = `<span class="status-line start-time">${matchTime}</span><span class="status-line"><p>Tomorrow</p></span>`;
+    } else {
+      const day = startDatetime.getDate();
+      const month = startDatetime.toLocaleDateString('en-US', { month: 'long' });
+      const matchTime = startDatetime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      matchStatus = `<span class="status-line start-time">${matchTime}</span><span class="status-line"><p>${day} ${month}</p></span>`;
+    }
 
     this.shadowRoot.innerHTML = `
       <ha-card>
@@ -191,10 +264,84 @@ class SoccerMatchCard extends HTMLElement {
     style.textContent = `
       ha-card {
         border-radius: 12px;
+        overflow: hidden;
         background: linear-gradient(to bottom, #002147 0%, #004080 100%);
         color: #fff;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
       }
-      /* [Keep your existing match styling...] */
+      .match-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 16px;
+      }
+      .header {
+        width: 100%;
+        text-align: center;
+        background-color: #d71920;
+        color: #fff;
+        font-size: 18px;
+        font-weight: bold;
+        padding: 8px 0;
+        letter-spacing: 1px;
+      }
+      .teams-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        margin: 16px 0;
+      }
+      .team {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex: 1;
+      }
+      .team-logo {
+        width: 80px;
+        height: 80px;
+        margin-bottom: 8px;
+        object-fit: contain;
+      }
+      .team-name {
+        font-size: 20px;
+        text-align: center;
+      }
+      .vs-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        flex: 0.6;
+        color: #fff;
+      }
+      .kickoff-time {
+        font-size: 14px;
+        text-align: center;
+      }
+      .status-line {
+        display: block;
+        text-align: center;
+        font-size: 14px;
+        font-weight: bold;
+      }
+      .status-line p {
+        font-size: 16px;
+        line-height: 0px;
+        color: #ccc;
+        padding-top: 12px;
+      }
+      .start-time {
+        font-size: 30px;
+        height: 22px;
+      }
+      .location {
+        font-size: 14px;
+        color: #ddd;
+        text-align: center;
+      }
     `;
     this.shadowRoot.appendChild(style);
   }
