@@ -150,54 +150,95 @@ render() {
   }
 
   const attributes = stateObj.attributes;
+  const friendlyName = stateObj.attributes.friendly_name || 'Team';
+  
+  // Extract team name from friendly_name (remove "Match Info" if present)
+  const teamName = friendlyName.replace(' Match Info', '').trim();
+  
+  // Check if we have a valid upcoming match
+  const hasValidMatch = this.isValidAttribute(attributes.home_team) && 
+                       this.isValidAttribute(attributes.away_team) &&
+                       attributes.starttime_datetime && 
+                       !isNaN(new Date(attributes.starttime_datetime).getTime());
 
-  // Check each attribute before displaying
-  const league = this.isValidAttribute(attributes.league) ? attributes.league : '';
-  const homeTeam = this.isValidAttribute(attributes.home_team) ? attributes.home_team : '';
-  const awayTeam = this.isValidAttribute(attributes.away_team) ? attributes.away_team : '';
-  const location = this.isValidAttribute(attributes.location) ? attributes.location : '';
-  const startDatetime = attributes.starttime_datetime ? new Date(attributes.starttime_datetime) : null;
-  const endDatetime = attributes.endtime_datetime ? new Date(attributes.endtime_datetime) : null;
-
-  // Check if we have all required attributes for a match
-  const hasMatchData = homeTeam && awayTeam && league && startDatetime && !isNaN(startDatetime.getTime());
-
-  if (!hasMatchData) {
+  if (!hasValidMatch) {
+    // Get team logo (use default if not loaded yet)
+    const teamLogo = this.teamLogos[teamName] || '/local/teamlogos/no_image_available.png';
+    
     this.shadowRoot.innerHTML = `
       <ha-card>
-        <div class="no-matches-container">
-          <div class="no-matches">No Upcoming Matches</div>
+        <div class="no-match-container">
+          <div class="team-logo-container">
+            <img src="${teamLogo}" alt="${teamName} Logo" class="team-logo">
+            <div class="team-name">${teamName}</div>
+          </div>
+          <div class="no-matches-message">No Upcoming Matches</div>
         </div>
       </ha-card>
     `;
     
-    // Add styles for the no matches message
-    const style = document.createElement('style');
-    style.textContent = `
-      ha-card {
-        border-radius: 12px;
-        overflow: hidden;
-        background: linear-gradient(to bottom, #002147 0%, #004080 100%);
-        color: #fff;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      }
-      .no-matches-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 150px;
-        padding: 16px;
-      }
-      .no-matches {
-        font-size: 20px;
-        color: #ccc;
-        text-align: center;
-      }
-    `;
-    this.shadowRoot.appendChild(style);
+    this.setNoMatchStyle();
     return;
   }
+
+  // Rest of your existing render code for when there is match data...
+  // ... continue with your existing match rendering logic
+}
+
+setNoMatchStyle() {
+  const style = document.createElement('style');
+  style.textContent = `
+    ha-card {
+      border-radius: 12px;
+      overflow: hidden;
+      background: linear-gradient(to bottom, #002147 0%, #004080 100%);
+      color: #fff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 200px;
+    }
+    
+    .no-match-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .team-logo-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .team-logo {
+      width: 100px;
+      height: 100px;
+      object-fit: contain;
+      margin-bottom: 10px;
+    }
+
+    .team-name {
+      font-size: 22px;
+      font-weight: bold;
+      color: white;
+    }
+
+    .no-matches-message {
+      font-size: 18px;
+      color: #ccc;
+      margin-top: 10px;
+    }
+  `;
+  this.shadowRoot.appendChild(style);
+}
 
 
     const now = new Date();
