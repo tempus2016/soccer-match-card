@@ -127,37 +127,78 @@ class SoccerMatchCard extends HTMLElement {
     }
   }
 
-  render() {
-    if (!this._hass || !this.config) {
-      this.shadowRoot.innerHTML = `
-        <ha-card>
-          <div style="color:white; padding: 16px;">❌ Waiting for hass/config...</div>
-        </ha-card>
-      `;
-      return;
-    }
+render() {
+  if (!this._hass || !this.config) {
+    this.shadowRoot.innerHTML = `
+      <ha-card>
+        <div style="color:white; padding: 16px;">❌ Waiting for hass/config...</div>
+      </ha-card>
+    `;
+    return;
+  }
 
-    const entityId = this.config.entity;
-    const stateObj = this._hass.states[entityId];
+  const entityId = this.config.entity;
+  const stateObj = this._hass.states[entityId];
 
-    if (!stateObj) {
-      this.shadowRoot.innerHTML = `
-        <ha-card>
-          <div style="color:white; padding: 16px;">❌ Entity not found: ${entityId}</div>
-        </ha-card>
-      `;
-      return;
-    }
+  if (!stateObj) {
+    this.shadowRoot.innerHTML = `
+      <ha-card>
+        <div style="color:white; padding: 16px;">❌ Entity not found: ${entityId}</div>
+      </ha-card>
+    `;
+    return;
+  }
 
-    const attributes = stateObj.attributes;
+  const attributes = stateObj.attributes;
 
-    // Check each attribute before displaying
-    const league = this.isValidAttribute(attributes.league) ? attributes.league : '';
-    const homeTeam = this.isValidAttribute(attributes.home_team) ? attributes.home_team : '';
-    const awayTeam = this.isValidAttribute(attributes.away_team) ? attributes.away_team : '';
-    const location = this.isValidAttribute(attributes.location) ? attributes.location : '';
-    const startDatetime = new Date(attributes.starttime_datetime);
-    const endDatetime = new Date(attributes.endtime_datetime);
+  // Check each attribute before displaying
+  const league = this.isValidAttribute(attributes.league) ? attributes.league : '';
+  const homeTeam = this.isValidAttribute(attributes.home_team) ? attributes.home_team : '';
+  const awayTeam = this.isValidAttribute(attributes.away_team) ? attributes.away_team : '';
+  const location = this.isValidAttribute(attributes.location) ? attributes.location : '';
+  const startDatetime = attributes.starttime_datetime ? new Date(attributes.starttime_datetime) : null;
+  const endDatetime = attributes.endtime_datetime ? new Date(attributes.endtime_datetime) : null;
+
+  // Check if we have all required attributes for a match
+  const hasMatchData = homeTeam && awayTeam && league && startDatetime && !isNaN(startDatetime.getTime());
+
+  if (!hasMatchData) {
+    this.shadowRoot.innerHTML = `
+      <ha-card>
+        <div class="no-matches-container">
+          <div class="no-matches">No Upcoming Matches</div>
+        </div>
+      </ha-card>
+    `;
+    
+    // Add styles for the no matches message
+    const style = document.createElement('style');
+    style.textContent = `
+      ha-card {
+        border-radius: 12px;
+        overflow: hidden;
+        background: linear-gradient(to bottom, #002147 0%, #004080 100%);
+        color: #fff;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      }
+      .no-matches-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 150px;
+        padding: 16px;
+      }
+      .no-matches {
+        font-size: 20px;
+        color: #ccc;
+        text-align: center;
+      }
+    `;
+    this.shadowRoot.appendChild(style);
+    return;
+  }
+
 
     const now = new Date();
 
@@ -242,9 +283,9 @@ class SoccerMatchCard extends HTMLElement {
     }
   }
 
-  isValidAttribute(attribute) {
-    return attribute && attribute.toLowerCase() !== 'unknown' && attribute !== '';
-  }
+isValidAttribute(attribute) {
+  return attribute && attribute.toLowerCase() !== 'unknown' && attribute !== '' && attribute !== 'null' && attribute !== 'undefined';
+}
 
   setStyle() {
     const style = document.createElement('style');
@@ -328,6 +369,7 @@ class SoccerMatchCard extends HTMLElement {
         font-size: 16px;
         line-height: 0px;
         color: #ccc;
+        padding-top: 12px;
       }
 
       .start-time {
