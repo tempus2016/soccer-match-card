@@ -157,7 +157,6 @@ class SoccerMatchCard extends HTMLElement {
           <div class="no-match-container">
             <div class="team-logo-container">
               <img src="${teamLogo}" alt="${teamName} Logo" class="team-logo">
-              <div class="team-name">${teamName}</div>
             </div>
             <div class="no-matches-message">No Upcoming Matches</div>
           </div>
