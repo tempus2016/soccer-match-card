@@ -16,21 +16,29 @@ class SoccerMatchCard extends HTMLElement {
     this.render();
   }
 
-  set hass(hass) {
-    this._hass = hass;
-    if (!this.config) return;
+set hass(hass) {
+  this._hass = hass;
+  if (!this.config) return;
 
-    const entityId = this.config.entity;
-    const stateObj = this._hass.states[entityId];
-    if (!stateObj || !this.hasEntityChanged(stateObj)) return;
+  const entityId = this.config.entity;
+  const stateObj = this._hass.states[entityId];
+  if (!stateObj || !this.hasEntityChanged(stateObj)) return;
 
-    const teamName = this.extractTeamName(stateObj.attributes.friendly_name);
-    if (!this.teamLogos[teamName] && !this.loadingLogos.has(teamName) && !this.failedLogos.has(teamName)) {
+  const home = stateObj.attributes.home_team;
+  const away = stateObj.attributes.away_team;
+
+  [home, away].forEach(teamName => {
+    if (this.isValidAttribute(teamName) &&
+        !this.teamLogos[teamName] &&
+        !this.loadingLogos.has(teamName) &&
+        !this.failedLogos.has(teamName)) {
       this.loadTeamLogo(teamName);
     }
+  });
 
-    this.render();
-  }
+  this.render();
+}
+
 
   hasEntityChanged(newState) {
     const prev = this.previousStateObj;
