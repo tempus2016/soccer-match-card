@@ -16,29 +16,28 @@ class SoccerMatchCard extends HTMLElement {
     this.render();
   }
 
-set hass(hass) {
-  this._hass = hass;
-  if (!this.config) return;
+  set hass(hass) {
+    this._hass = hass;
+    if (!this.config) return;
 
-  const entityId = this.config.entity;
-  const stateObj = this._hass.states[entityId];
-  if (!stateObj || !this.hasEntityChanged(stateObj)) return;
+    const entityId = this.config.entity;
+    const stateObj = this._hass.states[entityId];
+    if (!stateObj || !this.hasEntityChanged(stateObj)) return;
 
-  const home = stateObj.attributes.home_team;
-  const away = stateObj.attributes.away_team;
+    const home = stateObj.attributes.home_team;
+    const away = stateObj.attributes.away_team;
 
-  [home, away].forEach(teamName => {
-    if (this.isValidAttribute(teamName) &&
-        !this.teamLogos[teamName] &&
-        !this.loadingLogos.has(teamName) &&
-        !this.failedLogos.has(teamName)) {
-      this.loadTeamLogo(teamName);
-    }
-  });
+    [home, away].forEach(teamName => {
+      if (this.isValidAttribute(teamName) &&
+          !this.teamLogos[teamName] &&
+          !this.loadingLogos.has(teamName) &&
+          !this.failedLogos.has(teamName)) {
+        this.loadTeamLogo(teamName);
+      }
+    });
 
-  this.render();
-}
-
+    this.render();
+  }
 
   hasEntityChanged(newState) {
     const prev = this.previousStateObj;
@@ -178,8 +177,8 @@ set hass(hass) {
     const location = attr.location || '';
     const start = new Date(attr.starttime_datetime);
     const end = new Date(attr.endtime_datetime);
-    const homeLogo = `${(this.teamLogos[home])}?ts=${timestamp}`;
-    const awayLogo = `${(this.teamLogos[away])}?ts=${timestamp}`;
+    const homeLogo = `${(this.teamLogos[home] || '/local/teamlogos/no_image_available.png')}?ts=${timestamp}`;
+    const awayLogo = `${(this.teamLogos[away] || '/local/teamlogos/no_image_available.png')}?ts=${timestamp}`;
 
     const isInPlay = now >= start && now <= end;
     const matchDate = start.toLocaleDateString();
