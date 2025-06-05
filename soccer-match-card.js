@@ -16,28 +16,36 @@ class SoccerMatchCard extends HTMLElement {
     this.render();
   }
 
-  set hass(hass) {
-    this._hass = hass;
-    if (!this.config) return;
+set hass(hass) {
+  this._hass = hass;
+  if (!this.config) return;
 
-    const entityId = this.config.entity;
-    const stateObj = this._hass.states[entityId];
-    if (!stateObj || !this.hasEntityChanged(stateObj)) return;
+  const stateObj = this._hass.states[this.config.entity];
+  if (!stateObj || !this.hasEntityChanged(stateObj)) return;
 
-    const home = stateObj.attributes.home_team;
-    const away = stateObj.attributes.away_team;
+  const home = stateObj.attributes.home_team;
+  const away = stateObj.attributes.away_team;
 
-    [home, away].forEach(teamName => {
-      if (this.isValidAttribute(teamName) &&
-          !this.teamLogos[teamName] &&
-          !this.loadingLogos.has(teamName) &&
-          !this.failedLogos.has(teamName)) {
-        this.loadTeamLogo(teamName);
-      }
-    });
-
-    this.render();
+  const teamName = this.extractTeamName(stateObj.attributes.friendly_name);
+  if (this.isValidAttribute(teamName) &&
+      !this.teamLogos[teamName] &&
+      !this.loadingLogos.has(teamName) &&
+      !this.failedLogos.has(teamName)) {
+    this.loadTeamLogo(teamName);
   }
+
+  [home, away].forEach(team => {
+    if (this.isValidAttribute(team) &&
+        !this.teamLogos[team] &&
+        !this.loadingLogos.has(team) &&
+        !this.failedLogos.has(team)) {
+      this.loadTeamLogo(team);
+    }
+  });
+
+  this.render();
+}
+
 
   hasEntityChanged(newState) {
     const prev = this.previousStateObj;
