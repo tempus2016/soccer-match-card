@@ -164,7 +164,7 @@ set hass(hass) {
     const timestamp = Date.now();
     const friendlyName = attr.friendly_name || 'Team';
     const teamName = this.extractTeamName(friendlyName);
-    const teamLogo = `${(this.teamLogos[teamName] || '/local/teamlogos/no_image_available.png')}?ts=${timestamp}`;
+    const teamLogo = `${(this.teamLogos[teamName] || '/local/teamlogos/no_image_available.png')}`;
 
     if (this.getTemplateType(stateObj) === 'no-match') {
       return `
@@ -185,8 +185,8 @@ set hass(hass) {
     const location = attr.location || '';
     const start = new Date(attr.starttime_datetime);
     const end = new Date(attr.endtime_datetime);
-    const homeLogo = `${(this.teamLogos[home] || '/local/teamlogos/no_image_available.png')}?ts=${timestamp}`;
-    const awayLogo = `${(this.teamLogos[away] || '/local/teamlogos/no_image_available.png')}?ts=${timestamp}`;
+    const homeLogo = `${(this.teamLogos[home] || '/local/teamlogos/no_image_available.png')}`;
+    const awayLogo = `${(this.teamLogos[away] || '/local/teamlogos/no_image_available.png')}`;
 
     const isInPlay = now >= start && now <= end;
     const matchDate = start.toLocaleDateString();
