@@ -170,8 +170,8 @@ class SoccerMatchCard extends HTMLElement {
     const location = attr.location || '';
     const start = new Date(attr.starttime_datetime);
     const end = new Date(attr.endtime_datetime);
-    const homeLogo = `${(this.teamLogos[home] || '/local/teamlogos/no_image_available.png')}?ts=${timestamp}`;
-    const awayLogo = `${(this.teamLogos[away] || '/local/teamlogos/no_image_available.png')}?ts=${timestamp}`;
+    const homeLogo = ${(this.teamLogos[home];
+    const awayLogo = ${(this.teamLogos[away];
 
     const isInPlay = now >= start && now <= end;
     const matchDate = start.toLocaleDateString();
