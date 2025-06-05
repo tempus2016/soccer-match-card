@@ -1,220 +1,272 @@
-import { LitElement, html, css } from 'lit';
+// ======================
+// Constants & Configuration
+// ======================
+const DEFAULT_CONFIG = {
+  league_id: null,
+  api_url: 'https://api.example.com/matches',
+  refresh_interval: 60, // in minutes
+  show_logos: true,
+  max_matches: 10,
+  show_league_name: true,
+  date_format: 'short',
+};
 
-class SoccerMatchCard extends LitElement {
-  static properties = {
-    hass: { type: Object },
-    config: { type: Object },
-    _stateObj: { type: Object },
-    _teamLogos: { type: Object },
-    _loadingLogos: { type: Object },
-    _failedLogos: { type: Object },
-    _timestamp: { type: Number }
-  };
+// ======================
+// Helper Functions
+// ======================
+const formatTime = (dateString) => {
+  const date = new Date(dateString);
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
 
-  static styles = css`
-    ha-card {
-      border-radius: 12px;
-      background: linear-gradient(to bottom, #002147 0%, #004080 100%);
-      color: #fff;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      padding: 16px;
-    }
-    .team-logo {
-      width: 80px;
-      height: 80px;
-      object-fit: contain;
-    }
-    .match-container, .no-match-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-    }
-    .teams-row {
-      display: flex;
-      justify-content: space-around;
-      width: 100%;
-      margin: 16px 0;
-    }
-    .team {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .team-name {
-      font-size: 18px;
-      margin-top: 8px;
-    }
-    .status-line {
-      font-size: 20px;
-      font-weight: bold;
-      margin-top: 8px;
-    }
-    .location {
-      font-size: 14px;
-      color: #ccc;
-    }
-    .header {
-      background: #d71920;
-      padding: 8px;
-      font-weight: bold;
-      font-size: 18px;
-      width: 100%;
-    }
-  `;
+const formatDate = (dateString, format = 'short') => {
+  const date = new Date(dateString);
+  const options = format === 'long' 
+    ? { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
+    : { year: 'numeric', month: 'short', day: 'numeric' };
+  return date.toLocaleDateString([], options);
+};
 
-  constructor() {
-    super();
-    this._teamLogos = {};
-    this._loadingLogos = new Set();
-    this._failedLogos = new Set();
-    this._timestamp = Date.now();
-  }
-
-  setConfig(config) {
-    if (!config.entity) throw new Error('You need to define an entity');
-    this.config = config;
-  }
-
-  set hass(hass) {
-    const stateObj = hass.states[this.config.entity];
-    const prev = this._stateObj;
-    this._stateObj = stateObj;
-    this._timestamp = Date.now();
-    this.hass = hass;
-
-    if (!stateObj || stateObj === prev) return;
-
-    const teamNames = this._getAllTeamNames(stateObj);
-    for (const team of teamNames) {
-      if (!this._teamLogos[team] && !this._loadingLogos.has(team) && !this._failedLogos.has(team)) {
-        this._fetchTeamLogo(team);
+// ======================
+// Custom Element Class
+// ======================
+class SoccerMatchCard extends HTMLElement {
+  static get styles() {
+    return `
+      .card {
+        padding: 16px;
       }
-    }
-  }
-
-  _getAllTeamNames(stateObj) {
-    const { home_team, away_team, friendly_name } = stateObj?.attributes || {};
-    const teamName = this._extractTeamName(friendly_name);
-    return [home_team, away_team, teamName].filter(Boolean);
-  }
-
-  _extractTeamName(friendlyName = '') {
-    return friendlyName.replace(' FC Match Info', '').trim();
-  }
-
-  async _fetchTeamLogo(team) {
-    this._loadingLogos.add(team);
-    const localPath = this._localLogoPath(team);
-    try {
-      const res = await fetch(`${localPath}?ts=${this._timestamp}`);
-      if (res.ok) {
-        this._teamLogos[team] = localPath;
-        this.requestUpdate();
-        return;
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
       }
-    } catch (_) {}
-
-    try {
-      const apiKey = '3';
-      const res = await fetch(`https://www.thesportsdb.com/api/v1/json/${apiKey}/searchteams.php?t=${encodeURIComponent(team)}`);
-      const data = await res.json();
-      const badge = data.teams?.[0]?.strBadge;
-
-      if (badge) {
-        const filename = `${team.toLowerCase().replace(/ /g, '_')}.png`;
-        await this.hass.callService('downloader', 'download_file', {
-          overwrite: true,
-          url: badge,
-          filename
-        });
-        this._teamLogos[team] = `/local/teamlogos/${filename}`;
-      } else {
-        this._failedLogos.add(team);
+      .league-name {
+        font-size: 1.2rem;
+        font-weight: bold;
       }
-    } catch (e) {
-      console.warn(`Logo fetch failed for ${team}`, e);
-      this._failedLogos.add(team);
-    }
-    this._loadingLogos.delete(team);
-    this.requestUpdate();
-  }
-
-  _localLogoPath(team) {
-    return `/local/teamlogos/${team.toLowerCase().replace(/ /g, '_')}.png`;
-  }
-
-  _isValid(attr) {
-    return attr && attr !== 'unknown';
-  }
-
-  _getMatchStatus(start, end) {
-    const now = new Date();
-    if (now >= start && now <= end) return html`<div class="status-line">In Play</div>`;
-    const sameDay = start.toDateString() === now.toDateString();
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const time = start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    if (sameDay) return html`<div class="status-line">${time} Today</div>`;
-    if (start.toDateString() === tomorrow.toDateString()) return html`<div class="status-line">${time} Tomorrow</div>`;
-    return html`<div class="status-line">${time} ${start.toLocaleDateString()}`;
-  }
-
-  render() {
-    const stateObj = this._stateObj;
-    if (!stateObj) return html`<ha-card>❌ Entity not found</ha-card>`;
-
-    const attr = stateObj.attributes;
-    const type = this._isValid(attr.home_team) && this._isValid(attr.away_team) && attr.starttime_datetime ? 'match' : 'no-match';
-    const fallback = '/local/teamlogos/no_image_available.png';
-
-    if (type === 'no-match') {
-      const team = this._extractTeamName(attr.friendly_name);
-      const logo = this._teamLogos[team] || fallback;
-      return html`
-        <ha-card>
-          <div class="no-match-container">
-            <img class="team-logo" src="${logo}?ts=${this._timestamp}" />
-            <div>No Upcoming Matches</div>
-          </div>
-        </ha-card>
-      `;
-    }
-
-    const { home_team, away_team, starttime_datetime, endtime_datetime, league, location } = attr;
-    const homeLogo = this._teamLogos[home_team] || fallback;
-    const awayLogo = this._teamLogos[away_team] || fallback;
-    const start = new Date(starttime_datetime);
-    const end = new Date(endtime_datetime);
-
-    return html`
-      <ha-card>
-        <div class="match-container">
-          <div class="header">${league}</div>
-          <div class="teams-row">
-            <div class="team">
-              <img class="team-logo" src="${homeLogo}?ts=${this._timestamp}" />
-              <div class="team-name">${home_team}</div>
-            </div>
-            <div class="team">
-              ${this._getMatchStatus(start, end)}
-            </div>
-            <div class="team">
-              <img class="team-logo" src="${awayLogo}?ts=${this._timestamp}" />
-              <div class="team-name">${away_team}</div>
-            </div>
-          </div>
-          <div class="location">${location}</div>
-        </div>
-      </ha-card>
+      .refresh-button {
+        cursor: pointer;
+      }
+      .match {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--divider-color);
+      }
+      .teams {
+        flex: 1;
+        display: flex;
+        align-items: center;
+      }
+      .team {
+        display: flex;
+        align-items: center;
+      }
+      .team-home {
+        justify-content: flex-end;
+        text-align: right;
+      }
+      .team-logo {
+        width: 24px;
+        height: 24px;
+        margin: 0 8px;
+      }
+      .score {
+        font-weight: bold;
+        margin: 0 12px;
+        min-width: 40px;
+        text-align: center;
+      }
+      .match-time {
+        color: var(--secondary-text-color);
+        min-width: 60px;
+        text-align: right;
+      }
+      .error {
+        color: var(--error-color);
+        padding: 16px;
+        text-align: center;
+      }
     `;
   }
 
-  getCardSize() {
-    return 3;
+  constructor() {
+    super();
+    this._config = { ...DEFAULT_CONFIG };
+    this._matches = [];
+    this._error = null;
+    this._refreshInterval = null;
+    this.attachShadow({ mode: 'open' });
+  }
+
+  setConfig(config) {
+    if (!config || !config.league_id) {
+      throw new Error('Invalid configuration: league_id is required');
+    }
+
+    this._config = {
+      ...DEFAULT_CONFIG,
+      ...config
+    };
+
+    this._fetchData();
+    this._setupRefresh();
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    this._render();
+  }
+
+  connectedCallback() {
+    this._render();
+  }
+
+  disconnectedCallback() {
+    this._clearRefresh();
+  }
+
+  async _fetchData() {
+    try {
+      const response = await fetch(`${this._config.api_url}?league_id=${this._config.league_id}`);
+      
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+
+      const data = await response.json();
+      this._matches = data.matches.slice(0, this._config.max_matches);
+      this._error = null;
+    } catch (err) {
+      console.error('Failed to fetch match data:', err);
+      this._error = err.message;
+      this._matches = [];
+    } finally {
+      this._render();
+    }
+  }
+
+  _setupRefresh() {
+    this._clearRefresh();
+    if (this._config.refresh_interval > 0) {
+      const intervalMs = this._config.refresh_interval * 60 * 1000;
+      this._refreshInterval = setInterval(() => this._fetchData(), intervalMs);
+    }
+  }
+
+  _clearRefresh() {
+    if (this._refreshInterval) {
+      clearInterval(this._refreshInterval);
+      this._refreshInterval = null;
+    }
+  }
+
+  _render() {
+    if (!this.shadowRoot) return;
+
+    const style = document.createElement('style');
+    style.textContent = SoccerMatchCard.styles;
+
+    const card = document.createElement('ha-card');
+    const content = document.createElement('div');
+    content.className = 'card';
+
+    // Header with league name and refresh button
+    const header = document.createElement('div');
+    header.className = 'header';
+
+    if (this._config.show_league_name) {
+      const leagueName = document.createElement('div');
+      leagueName.className = 'league-name';
+      leagueName.textContent = this._config.league_name || 'Soccer Matches';
+      header.appendChild(leagueName);
+    }
+
+    const refreshButton = document.createElement('div');
+    refreshButton.className = 'refresh-button';
+    refreshButton.innerHTML = '<ha-icon icon="mdi:refresh"></ha-icon>';
+    refreshButton.addEventListener('click', () => this._fetchData());
+    header.appendChild(refreshButton);
+
+    content.appendChild(header);
+
+    // Error message or matches list
+    if (this._error) {
+      const errorElement = document.createElement('div');
+      errorElement.className = 'error';
+      errorElement.textContent = this._error;
+      content.appendChild(errorElement);
+    } else if (this._matches.length === 0) {
+      const noMatches = document.createElement('div');
+      noMatches.className = 'error';
+      noMatches.textContent = 'No matches scheduled';
+      content.appendChild(noMatches);
+    } else {
+      this._matches.forEach(match => {
+        content.appendChild(this._renderMatch(match));
+      });
+    }
+
+    card.appendChild(content);
+
+    // Clear previous content and add new
+    this.shadowRoot.innerHTML = '';
+    this.shadowRoot.appendChild(style);
+    this.shadowRoot.appendChild(card);
+  }
+
+  _renderMatch(match) {
+    const matchElement = document.createElement('div');
+    matchElement.className = 'match';
+
+    // Home team
+    const homeTeam = document.createElement('div');
+    homeTeam.className = 'team team-home';
+    homeTeam.innerHTML = `
+      <span>${match.home_team}</span>
+      ${this._config.show_logos ? `<img class="team-logo" src="${match.home_team_logo}" alt="${match.home_team}">` : ''}
+    `;
+
+    // Score
+    const score = document.createElement('div');
+    score.className = 'score';
+    score.textContent = match.status === 'completed' 
+      ? `${match.home_score} - ${match.away_score}`
+      : 'vs';
+
+    // Away team
+    const awayTeam = document.createElement('div');
+    awayTeam.className = 'team team-away';
+    awayTeam.innerHTML = `
+      ${this._config.show_logos ? `<img class="team-logo" src="${match.away_team_logo}" alt="${match.away_team}">` : ''}
+      <span>${match.away_team}</span>
+    `;
+
+    // Teams container
+    const teams = document.createElement('div');
+    teams.className = 'teams';
+    teams.appendChild(homeTeam);
+    teams.appendChild(score);
+    teams.appendChild(awayTeam);
+
+    // Match time
+    const time = document.createElement('div');
+    time.className = 'match-time';
+    time.textContent = match.status === 'completed'
+      ? 'FT'
+      : formatTime(match.time);
+
+    matchElement.appendChild(teams);
+    matchElement.appendChild(time);
+
+    return matchElement;
   }
 }
 
+// ======================
+// Register Custom Element
+// ======================
 customElements.define('soccer-match-card', SoccerMatchCard);
