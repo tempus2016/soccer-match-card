@@ -1,9 +1,9 @@
 {
   "name": "Soccer Match Card",
-  "content_in_root": false,
+  "content_in_root": true,
   "filename": "soccer-match-card.js",
   "render_readme": true,
   "domains": ["lovelace"],
-  "country": "US",
-  "homeassistant": "2023.1.0"
+  "country": "GB",
+  "homeassistant": "2023.4.0"
 }
